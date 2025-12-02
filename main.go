@@ -12,7 +12,9 @@ import (
 	"time"
 
 	"github.com/gorilla/websocket"
+	pb "github.com/matoubidou/ksem/proto"
 	"golang.org/x/oauth2"
+	"google.golang.org/protobuf/proto"
 	"gopkg.in/yaml.v3"
 )
 
@@ -182,258 +184,43 @@ func connectWebSocket(config *Config, token *oauth2.Token) (*websocket.Conn, err
 	return conn, nil
 }
 
-// decodeVarint decodes a varint from the buffer and returns the value and the number of bytes consumed
-func decodeVarint(data []byte) (uint64, int) {
-	var x uint64
-	var s uint
-	for i, b := range data {
-		if i >= 10 {
-			return 0, 0 // overflow
-		}
-		if b < 0x80 {
-			if i == 9 && b > 1 {
-				return 0, 0 // overflow
-			}
-			return x | uint64(b)<<s, i + 1
-		}
-		x |= uint64(b&0x7f) << s
-		s += 7
-	}
-	return 0, 0
-}
-
-// parseProtobufField parses a single protobuf field and returns the wire type, field number, and data
-func parseProtobufField(data []byte) (wireType, fieldNumber int, fieldData []byte, bytesRead int) {
-	if len(data) == 0 {
-		return 0, 0, nil, 0
-	}
-
-	// Read the tag (field number + wire type)
-	tag, n := decodeVarint(data)
-	if n == 0 {
-		return 0, 0, nil, 0
-	}
-
-	wireType = int(tag & 7)
-	fieldNumber = int(tag >> 3)
-	bytesRead = n
-
-	switch wireType {
-	case 0: // Varint
-		_, n := decodeVarint(data[bytesRead:])
-		if n == 0 {
-			return 0, 0, nil, 0
-		}
-		fieldData = data[bytesRead : bytesRead+n]
-		bytesRead += n
-
-	case 1: // 64-bit
-		if len(data[bytesRead:]) < 8 {
-			return 0, 0, nil, 0
-		}
-		fieldData = data[bytesRead : bytesRead+8]
-		bytesRead += 8
-
-	case 2: // Length-delimited
-		length, n := decodeVarint(data[bytesRead:])
-		if n == 0 {
-			return 0, 0, nil, 0
-		}
-		bytesRead += n
-		if uint64(len(data[bytesRead:])) < length {
-			return 0, 0, nil, 0
-		}
-		fieldData = data[bytesRead : bytesRead+int(length)]
-		bytesRead += int(length)
-
-	case 5: // 32-bit
-		if len(data[bytesRead:]) < 4 {
-			return 0, 0, nil, 0
-		}
-		fieldData = data[bytesRead : bytesRead+4]
-		bytesRead += 4
-
-	default:
-		return 0, 0, nil, 0
-	}
-
-	return wireType, fieldNumber, fieldData, bytesRead
-}
-
-// parseGDRValues parses the GDR values map (field 4) which contains OBIS codes and their values
-func parseGDRValues(data []byte) map[uint64]uint64 {
-	values := make(map[uint64]uint64)
-	pos := 0
-
-	for pos < len(data) {
-		wireType, fieldNum, fieldData, n := parseProtobufField(data[pos:])
-		if n == 0 {
-			break
-		}
-		pos += n
-
-		// In a map entry, field 1 is the key, field 2 is the value
-		if fieldNum == 1 && wireType == 0 {
-			// This is a key (OBIS code)
-			obisCode, _ := decodeVarint(fieldData)
-			
-			// Now read the next field which should be the value
-			if pos < len(data) {
-				wireType2, fieldNum2, fieldData2, n2 := parseProtobufField(data[pos:])
-				if n2 > 0 && fieldNum2 == 2 && wireType2 == 0 {
-					value, _ := decodeVarint(fieldData2)
-					values[obisCode] = value
-					pos += n2
-				}
-			}
-		}
-	}
-
-	return values
-}
-
-// parseGDR parses a single GDR message and returns both OBIS values and flex values
-func parseGDR(data []byte) (map[uint64]uint64, map[string]int64) {
-	pos := 0
-	var valuesMap map[uint64]uint64
-	var flexValuesMap map[string]int64
-
-	for pos < len(data) {
-		wireType, fieldNum, fieldData, n := parseProtobufField(data[pos:])
-		if n == 0 {
-			break
-		}
-		pos += n
-
-		// Field 4 contains the values map<uint64, uint64>
-		if fieldNum == 4 && wireType == 2 {
-			// This is a map entry - need to parse each entry
-			if valuesMap == nil {
-				valuesMap = make(map[uint64]uint64)
-			}
-			// Parse the map entry
-			entryValues := parseGDRValues(fieldData)
-			for k, v := range entryValues {
-				valuesMap[k] = v
-			}
-		}
-
-		// Field 5 contains the flexValues map<string, FlexValue>
-		if fieldNum == 5 && wireType == 2 {
-			if flexValuesMap == nil {
-				flexValuesMap = make(map[string]int64)
-			}
-			// Parse flex value entry
-			flexKey, flexVal := parseFlexValueEntry(fieldData)
-			if flexKey != "" {
-				flexValuesMap[flexKey] = flexVal
-			}
-		}
-	}
-
-	return valuesMap, flexValuesMap
-}
-
-// parseFlexValueEntry parses a single flexValues map entry
-func parseFlexValueEntry(data []byte) (string, int64) {
-	pos := 0
-	var key string
-	var intValue int64
-
-	for pos < len(data) {
-		wireType, fieldNum, fieldData, n := parseProtobufField(data[pos:])
-		if n == 0 {
-			break
-		}
-		pos += n
-
-		// Field 1 is the key (string)
-		if fieldNum == 1 && wireType == 2 {
-			key = string(fieldData)
-		}
-
-		// Field 2 is the FlexValue message
-		if fieldNum == 2 && wireType == 2 {
-			// Parse FlexValue - field 1 is intValue
-			flexPos := 0
-			for flexPos < len(fieldData) {
-				flexWireType, flexFieldNum, flexFieldData, flexN := parseProtobufField(fieldData[flexPos:])
-				if flexN == 0 {
-					break
-				}
-				flexPos += flexN
-
-				// Field 1 in FlexValue is intValue
-				if flexFieldNum == 1 && flexWireType == 0 {
-					uval, _ := decodeVarint(flexFieldData)
-					// Proto3 int64 uses standard varint encoding
-					// Just cast to signed
-					intValue = int64(uval)
-				}
-			}
-		}
-	}
-
-	return key, intValue
-}
-
 func parseProtobufMessage(data []byte, config *Config) (*KSEMData, error) {
 	if config.Debug {
 		log.Printf("Received %d bytes of protobuf data", len(data))
-		// Show first 200 bytes in hex for debugging
-		dumpLen := 200
-		if len(data) < dumpLen {
-			dumpLen = len(data)
-		}
-		log.Printf("First %d bytes (hex): % X", dumpLen, data[:dumpLen])
 	}
 
 	result := &KSEMData{
 		Timestamp: time.Now(),
 	}
 
-	// Parse the GDRs message
-	// GDRs contains: map<string, GDR> gdrs (field 1)
-	pos := 0
+	// Parse the GDRs message using generated protobuf code
+	gdrs := &pb.GDRs{}
+	if err := proto.Unmarshal(data, gdrs); err != nil {
+		return nil, fmt.Errorf("failed to unmarshal GDRs: %w", err)
+	}
+
+	// Extract values from all GDRs
 	var allValues map[uint64]uint64
 	var allFlexValues map[string]int64
 
-	for pos < len(data) {
-		wireType, fieldNum, fieldData, n := parseProtobufField(data[pos:])
-		if n == 0 {
-			break
+	for _, gdr := range gdrs.GDRs {
+		// Merge OBIS values
+		if len(gdr.Values) > 0 {
+			if allValues == nil {
+				allValues = make(map[uint64]uint64)
+			}
+			for k, v := range gdr.Values {
+				allValues[k] = v
+			}
 		}
-		pos += n
 
-		// Field 1 is the gdrs map
-		if fieldNum == 1 && wireType == 2 {
-			// Parse the map entry: key (string) and value (GDR message)
-			entryPos := 0
-			for entryPos < len(fieldData) {
-				entryWireType, entryFieldNum, entryFieldData, entryN := parseProtobufField(fieldData[entryPos:])
-				if entryN == 0 {
-					break
-				}
-				entryPos += entryN
-
-				// Field 2 in the map entry is the GDR value
-				if entryFieldNum == 2 && entryWireType == 2 {
-					// Parse the GDR message
-					gdrValues, gdrFlexValues := parseGDR(entryFieldData)
-					if allValues == nil {
-						allValues = make(map[uint64]uint64)
-					}
-					if allFlexValues == nil {
-						allFlexValues = make(map[string]int64)
-					}
-					// Merge values from this GDR
-					for k, v := range gdrValues {
-						allValues[k] = v
-					}
-					for k, v := range gdrFlexValues {
-						allFlexValues[k] = v
-					}
-				}
+		// Merge flex values
+		if len(gdr.FlexValues) > 0 {
+			if allFlexValues == nil {
+				allFlexValues = make(map[string]int64)
+			}
+			for k, v := range gdr.FlexValues {
+				allFlexValues[k] = v.IntValue
 			}
 		}
 	}
@@ -581,10 +368,7 @@ func outputData(config *Config, data *KSEMData) error {
 			}
 			
 			fmt.Printf("Home Consumption:   %.2f W\n", data.PowerHome)
-			
-			if data.PowerWallbox > 0 {
-				fmt.Printf("Wallbox:            %.2f W\n", data.PowerWallbox)
-			}
+			fmt.Printf("Wallbox:            %.2f W\n", data.PowerWallbox)
 		}
 		
 		// Show phase power if available (from smart-meter endpoint)
