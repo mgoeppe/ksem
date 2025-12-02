@@ -13,6 +13,9 @@ ksem-scraper
 *.out
 ksem_data.json
 
+# Configuration (contains sensitive password)
+config.yaml
+
 # IDE
 .idea/
 .vscode/

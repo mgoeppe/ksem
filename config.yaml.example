@@ -4,7 +4,7 @@
 meter:
   # Hostname or IP address of your KSEM meter
   host: ksem.fritz.box
-  
+
   # KSEM password (username is always "admin")
   password: "your-password-here"
 
@@ -16,7 +16,7 @@ scraping:
 output:
   # Output format: "console" or "json"
   format: console
-  
+
   # Optional: path to write JSON output
   # Leave empty to print to stdout
   file_path: ""

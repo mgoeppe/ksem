@@ -4,14 +4,14 @@ A Go tool for scraping real-time energy data from Kostal KSEM (Kostal Smart Ener
 
 ## Features
 
-✅ **OAuth2 Authentication** - Automatic token management  
-✅ **WebSocket Connection** - Real-time data streaming  
-✅ **Protocol Buffer Decoding** - Efficient binary message parsing  
-✅ **Power Flow Monitoring** - Solar, battery, grid, home, and wallbox  
-✅ **Directional Indicators** - Shows charging/discharging, importing/exporting  
-✅ **Battery State of Charge** - Real-time SOC percentage  
-✅ **OBIS Code Support** - Standardized energy measurement codes  
-✅ **Multiple Output Formats** - Console display or JSON file  
+✅ **OAuth2 Authentication** - Automatic token management
+✅ **WebSocket Connection** - Real-time data streaming
+✅ **Protocol Buffer Decoding** - Efficient binary message parsing
+✅ **Power Flow Monitoring** - Solar, battery, grid, home, and wallbox
+✅ **Directional Indicators** - Shows charging/discharging, importing/exporting
+✅ **Battery State of Charge** - Real-time SOC percentage
+✅ **OBIS Code Support** - Standardized energy measurement codes
+✅ **Multiple Output Formats** - Console display or JSON file
 
 ## Quick Start
 
@@ -67,7 +67,7 @@ Wallbox:            0.00 W
 ### Power Flow Indicators
 
 - **Solar Production**: Always positive (power generated)
-- **Battery**: 
+- **Battery**:
   - Positive (+) = charging
   - Negative (-) = discharging
   - Zero = idle
@@ -109,16 +109,16 @@ Protocol Buffer messages contain:
 
 ### OBIS Codes (Cumulative Totals)
 
-| OBIS Code      | Hex            | Description                  |
-| -------------- | -------------- | ---------------------------- |
-| 1-0:1.4.0*255  | 0x100010400FF  | Total active power (mW)      |
-| 1-0:14.4.0*255 | 0x1000E0400FF  | Grid frequency (mHz)         |
-| 1-0:1.8.0*255  | 0x100010800FF  | Grid energy purchase (mWh)   |
-| 1-0:2.8.0*255  | 0x100020800FF  | Grid energy feed-in (mWh)    |
-| 1-0:65.8.0*255 | 0x100410800FF  | Solar total energy (mWh)     |
-| 1-0:67.8.0*255 | 0x100430800FF  | Battery charge energy (mWh)  |
-| 1-0:68.8.0*255 | 0x100440800FF  | Battery discharge energy (mWh)|
-| 1-0:74.8.0*255 | 0x1004A0800FF  | Wallbox energy (mWh)         |
+| OBIS Code      | Hex           | Description                    |
+| -------------- | ------------- | ------------------------------ |
+| 1-0:1.4.0*255  | 0x100010400FF | Total active power (mW)        |
+| 1-0:14.4.0*255 | 0x1000E0400FF | Grid frequency (mHz)           |
+| 1-0:1.8.0*255  | 0x100010800FF | Grid energy purchase (mWh)     |
+| 1-0:2.8.0*255  | 0x100020800FF | Grid energy feed-in (mWh)      |
+| 1-0:65.8.0*255 | 0x100410800FF | Solar total energy (mWh)       |
+| 1-0:67.8.0*255 | 0x100430800FF | Battery charge energy (mWh)    |
+| 1-0:68.8.0*255 | 0x100440800FF | Battery discharge energy (mWh) |
+| 1-0:74.8.0*255 | 0x1004A0800FF | Wallbox energy (mWh)           |
 
 Values are in milli-units (mW, mWh, mHz) and automatically converted to standard units.
 
