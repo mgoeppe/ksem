@@ -23,13 +23,8 @@ import (
 type Config struct {
 	Meter struct {
 		Host     string `yaml:"host"`
-		Username string `yaml:"username"`
 		Password string `yaml:"password"`
 	} `yaml:"meter"`
-	OAuth2 struct {
-		ClientID     string `yaml:"client_id"`
-		ClientSecret string `yaml:"client_secret"`
-	} `yaml:"oauth2"`
 	Scraping struct {
 		Interval string `yaml:"interval"`
 		ConfigID string `yaml:"config_id"` // e.g., "smart-meter"
@@ -83,15 +78,6 @@ func loadConfig(filename string) (*Config, error) {
 	}
 
 	// Set defaults
-	if config.Meter.Username == "" {
-		config.Meter.Username = "admin"
-	}
-	if config.OAuth2.ClientID == "" {
-		config.OAuth2.ClientID = "emos"
-	}
-	if config.OAuth2.ClientSecret == "" {
-		config.OAuth2.ClientSecret = "56951025"
-	}
 	if config.Scraping.Interval == "" {
 		config.Scraping.Interval = "10s"
 	}
@@ -108,18 +94,19 @@ func loadConfig(filename string) (*Config, error) {
 func authenticate(ctx context.Context, config *Config) (*oauth2.Token, error) {
 	tokenURL := fmt.Sprintf("http://%s/api/web-login/token", config.Meter.Host)
 
+	// KSEM OAuth2 constants
+	const (
+		clientID     = "emos"
+		clientSecret = "56951025"
+		username     = "admin"
+	)
+
 	oauth2Config := oauth2.Config{
-		ClientID:     config.OAuth2.ClientID,
-		ClientSecret: config.OAuth2.ClientSecret,
+		ClientID:     clientID,
+		ClientSecret: clientSecret,
 		Endpoint: oauth2.Endpoint{
 			TokenURL: tokenURL,
 		},
-	}
-
-	// Username is always "admin" for KSEM
-	username := "admin"
-	if config.Meter.Username != "" {
-		username = config.Meter.Username
 	}
 
 	token, err := oauth2Config.PasswordCredentialsToken(ctx, username, config.Meter.Password)

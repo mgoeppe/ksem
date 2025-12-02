@@ -4,9 +4,9 @@ A Go tool for scraping real-time data from Kostal KSEM (Kostal Smart Energy Mete
 
 ## Status
 
-✅ **OAuth2 Authentication** - Working  
-✅ **WebSocket Connection** - Working  
-✅ **Data Reception** - Working (receiving ~1 message/second, ~830 bytes each)  
+✅ **OAuth2 Authentication** - Working
+✅ **WebSocket Connection** - Working
+✅ **Data Reception** - Working (receiving ~1 message/second, ~830 bytes each)
 🚧 **Protocol Buffer Decoding** - In Progress
 
 The application successfully connects to the KSEM meter and receives real-time data updates via WebSocket with Protocol Buffer encoding.
@@ -97,15 +97,15 @@ Press `Ctrl+C` to gracefully shut down.
 
 The tool collects the following measurements using OBIS codes:
 
-| Field                  | OBIS Code     | DXS ID   | Description                |
-|------------------------|---------------|----------|----------------------------|
-| ActivePowerTotal       | 1-0:1.4.0*255 | 67109120 | Total active power (W)     |
-| ActivePowerL1          | 1-0:21.4.0*255| 67109376 | Active power phase L1 (W)  |
-| ActivePowerL2          | 1-0:41.4.0*255| 67109632 | Active power phase L2 (W)  |
-| ActivePowerL3          | 1-0:61.4.0*255| 67109888 | Active power phase L3 (W)  |
-| GridFrequency          | 1-0:14.4.0*255| 16780288 | Grid frequency (Hz)        |
-| ActiveEnergyImport     | 1-0:1.8.0*255 | 67371264 | Imported energy (kWh)      |
-| ActiveEnergyExport     | 1-0:2.8.0*255 | 67371520 | Exported energy (kWh)      |
+| Field              | OBIS Code      | DXS ID   | Description               |
+| ------------------ | -------------- | -------- | ------------------------- |
+| ActivePowerTotal   | 1-0:1.4.0*255  | 67109120 | Total active power (W)    |
+| ActivePowerL1      | 1-0:21.4.0*255 | 67109376 | Active power phase L1 (W) |
+| ActivePowerL2      | 1-0:41.4.0*255 | 67109632 | Active power phase L2 (W) |
+| ActivePowerL3      | 1-0:61.4.0*255 | 67109888 | Active power phase L3 (W) |
+| GridFrequency      | 1-0:14.4.0*255 | 16780288 | Grid frequency (Hz)       |
+| ActiveEnergyImport | 1-0:1.8.0*255  | 67371264 | Imported energy (kWh)     |
+| ActiveEnergyExport | 1-0:2.8.0*255  | 67371520 | Exported energy (kWh)     |
 
 ## Protocol Buffer Message Structure
 
@@ -179,4 +179,3 @@ MIT
 ## Acknowledgments
 
 This tool was developed through analysis of the KSEM web application's JavaScript code to discover the WebSocket + Protocol Buffer architecture.
-

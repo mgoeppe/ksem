@@ -126,15 +126,15 @@ $ timeout 10 ./ksem 2>&1 | head -30
 
 These are the OBIS codes used by the KSEM meter:
 
-| OBIS Code (Decimal) | OBIS Code (Human)  | Description                | Unit |
-|---------------------|-------------------|----------------------------|------|
-| 67109120            | 1-0:1.4.0*255     | Total active power         | mW   |
-| 67109376            | 1-0:21.4.0*255    | Active power phase L1      | mW   |
-| 67109632            | 1-0:41.4.0*255    | Active power phase L2      | mW   |
-| 67109888            | 1-0:61.4.0*255    | Active power phase L3      | mW   |
-| 16780288            | 1-0:14.4.0*255    | Grid frequency             | mHz  |
-| 67371264            | 1-0:1.8.0*255     | Active energy import       | mWh  |
-| 67371520            | 1-0:2.8.0*255     | Active energy export       | mWh  |
+| OBIS Code (Decimal) | OBIS Code (Human) | Description           | Unit |
+| ------------------- | ----------------- | --------------------- | ---- |
+| 67109120            | 1-0:1.4.0*255     | Total active power    | mW   |
+| 67109376            | 1-0:21.4.0*255    | Active power phase L1 | mW   |
+| 67109632            | 1-0:41.4.0*255    | Active power phase L2 | mW   |
+| 67109888            | 1-0:61.4.0*255    | Active power phase L3 | mW   |
+| 16780288            | 1-0:14.4.0*255    | Grid frequency        | mHz  |
+| 67371264            | 1-0:1.8.0*255     | Active energy import  | mWh  |
+| 67371520            | 1-0:2.8.0*255     | Active energy export  | mWh  |
 
 ## Protocol Buffer Schema
 
@@ -179,7 +179,7 @@ func parseProtobufMessage(data []byte) (KSEMData, error) {
     if err := proto.Unmarshal(data, gdrs); err != nil {
         return KSEMData{}, err
     }
-    
+
     // Extract values from gdrs.Gdrs map
     for _, gdr := range gdrs.Gdrs {
         for obisCode, value := range gdr.Values {
