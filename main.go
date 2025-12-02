@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"github.com/gorilla/websocket"
+	"github.com/matoubidou/ksem/obis"
 	pb "github.com/matoubidou/ksem/proto"
 	"golang.org/x/oauth2"
 	"google.golang.org/protobuf/proto"
@@ -42,52 +43,33 @@ type Config struct {
 
 // KSEMData represents the data structure for the KSEM meter
 type KSEMData struct {
-	Timestamp          time.Time `json:"timestamp"`
-	ActivePowerTotal   float64   `json:"active_power_total"`   // 1-0:1.4.0*255 - Current total power
-	ActivePowerL1      float64   `json:"active_power_l1"`      // 1-0:21.4.0*255
-	ActivePowerL2      float64   `json:"active_power_l2"`      // 1-0:41.4.0*255
-	ActivePowerL3      float64   `json:"active_power_l3"`      // 1-0:61.4.0*255
-	GridFrequency      float64   `json:"grid_frequency"`       // 1-0:14.4.0*255
-	
+	Timestamp        time.Time `json:"timestamp"`
+	ActivePowerTotal float64   `json:"active_power_total"` // 1-0:1.4.0*255 - Current total power
+	ActivePowerL1    float64   `json:"active_power_l1"`    // 1-0:21.4.0*255
+	ActivePowerL2    float64   `json:"active_power_l2"`    // 1-0:41.4.0*255
+	ActivePowerL3    float64   `json:"active_power_l3"`    // 1-0:61.4.0*255
+	GridFrequency    float64   `json:"grid_frequency"`     // 1-0:14.4.0*255
+
 	// Instantaneous power flows (from sumvalues endpoint)
-	PowerSolar         float64   `json:"power_solar"`         // Solar production (W, positive)
-	PowerBattery       float64   `json:"power_battery"`       // Battery power (W, + charging, - discharging)
-	PowerGrid          float64   `json:"power_grid"`          // Grid power (W, + importing, - exporting)
-	PowerHome          float64   `json:"power_home"`          // Home consumption (W, positive)
-	PowerWallbox       float64   `json:"power_wallbox"`       // Wallbox consumption (W, positive)
-	BatterySOC         float64   `json:"battery_soc"`         // Battery state of charge (%)
-	
+	PowerSolar   float64 `json:"power_solar"`   // Solar production (W, positive)
+	PowerBattery float64 `json:"power_battery"` // Battery power (W, + charging, - discharging)
+	PowerGrid    float64 `json:"power_grid"`    // Grid power (W, + importing, - exporting)
+	PowerHome    float64 `json:"power_home"`    // Home consumption (W, positive)
+	PowerWallbox float64 `json:"power_wallbox"` // Wallbox consumption (W, positive)
+	BatterySOC   float64 `json:"battery_soc"`   // Battery state of charge (%)
+
 	// Cumulative energy totals
-	EnergyGridPurchase float64   `json:"energy_grid_purchase"` // Total purchased from grid
-	EnergyGridFeedIn   float64   `json:"energy_grid_feedin"`   // Total fed into grid
-	
+	EnergyGridPurchase float64 `json:"energy_grid_purchase"` // Total purchased from grid
+	EnergyGridFeedIn   float64 `json:"energy_grid_feedin"`   // Total fed into grid
+
 	// Cumulative energy by source (if available)
-	EnergySolarTotal   float64   `json:"energy_solar_total"`   // Total solar production
-	EnergyBatteryCharge float64  `json:"energy_battery_charge"` // Total battery charged
-	EnergyBatteryDischarge float64 `json:"energy_battery_discharge"` // Total battery discharged  
-	EnergyWallbox      float64   `json:"energy_wallbox"`       // Total wallbox consumption
+	EnergySolarTotal       float64 `json:"energy_solar_total"`       // Total solar production
+	EnergyBatteryCharge    float64 `json:"energy_battery_charge"`    // Total battery charged
+	EnergyBatteryDischarge float64 `json:"energy_battery_discharge"` // Total battery discharged
+	EnergyWallbox          float64 `json:"energy_wallbox"`           // Total wallbox consumption
 }
 
-// OBIS code constants (encoded as seen in the WebSocket data)
-// Format: 0x1 00 AA BB CC FF where BB=04 for power (W), BB=08 for energy (Wh)
-const (
-	// Instantaneous power measurements (BB=04)
-	OBIS_ACTIVE_POWER_TOTAL   uint64 = 0x100010400FF  // 1-0:1.4.0*255 - Total active power
-	OBIS_ACTIVE_POWER_L1       uint64 = 0x100150400FF  // 1-0:21.4.0*255 - L1 active power
-	OBIS_ACTIVE_POWER_L2       uint64 = 0x100290400FF  // 1-0:41.4.0*255 - L2 active power
-	OBIS_ACTIVE_POWER_L3       uint64 = 0x1003D0400FF  // 1-0:61.4.0*255 - L3 active power
-	OBIS_GRID_FREQUENCY        uint64 = 0x1000E0400FF  // 1-0:14.4.0*255 - Grid frequency
-	
-	// Cumulative energy totals (BB=08) - these match the UI bottom display
-	OBIS_ENERGY_GRID_PURCHASE  uint64 = 0x100010800FF  // 1-0:1.8.0*255 - Grid purchase ("Purchase" in UI)
-	OBIS_ENERGY_GRID_FEEDIN    uint64 = 0x100020800FF  // 1-0:2.8.0*255 - Grid feed-in ("Feed-in" in UI)
-	
-	// Additional cumulative energy totals by source
-	OBIS_ENERGY_SOLAR_TOTAL    uint64 = 0x100460800FF  // Total solar production
-	OBIS_ENERGY_BATTERY_CHARGE uint64 = 0x1003E0800FF  // Total battery charge
-	OBIS_ENERGY_BATTERY_DISCHARGE uint64 = 0x1003D0800FF // Total battery discharge
-	OBIS_ENERGY_WALLBOX        uint64 = 0x100450800FF  // Total wallbox consumption
-)
+// No need for OBIS constants anymore - using obis package
 
 func loadConfig(filename string) (*Config, error) {
 	data, err := os.ReadFile(filename)
@@ -233,54 +215,55 @@ func parseProtobufMessage(data []byte, config *Config) (*KSEMData, error) {
 		}
 	}
 
-	// Extract OBIS values and convert units (mW -> W, mHz -> Hz, mWh -> kWh)
+	// Extract OBIS values and convert units using obis package
 	if allValues != nil {
 		if config.Debug {
 			log.Printf("Parsed %d OBIS values from protobuf message", len(allValues))
-			// Log ALL OBIS codes with their values to identify energy flows
-			for obisCode, value := range allValues {
-				log.Printf("  OBIS %d (0x%X) = %d (%.2f W or %.3f kWh)", obisCode, obisCode, value, float64(value)/1000.0, float64(value)/1000000.0)
+			for obisHex, value := range allValues {
+				if code, ok := obis.Lookup(obisHex); ok {
+					log.Printf("  %s = %s", code.Description, code.Format(value))
+				} else {
+					log.Printf("  OBIS 0x%X = %d (unknown)", obisHex, value)
+				}
 			}
 		}
 
-		if val, ok := allValues[OBIS_ACTIVE_POWER_TOTAL]; ok {
-			result.ActivePowerTotal = float64(val) / 1000.0 // mW to W
+		// Extract known OBIS values
+		if val, ok := allValues[obis.ActivePowerTotal.Hex]; ok {
+			result.ActivePowerTotal = obis.ActivePowerTotal.Convert(val)
 		}
-		if val, ok := allValues[OBIS_ACTIVE_POWER_L1]; ok {
-			result.ActivePowerL1 = float64(val) / 1000.0 // mW to W
+		if val, ok := allValues[obis.ActivePowerL1.Hex]; ok {
+			result.ActivePowerL1 = obis.ActivePowerL1.Convert(val)
 		}
-		if val, ok := allValues[OBIS_ACTIVE_POWER_L2]; ok {
-			result.ActivePowerL2 = float64(val) / 1000.0 // mW to W
+		if val, ok := allValues[obis.ActivePowerL2.Hex]; ok {
+			result.ActivePowerL2 = obis.ActivePowerL2.Convert(val)
 		}
-		if val, ok := allValues[OBIS_ACTIVE_POWER_L3]; ok {
-			result.ActivePowerL3 = float64(val) / 1000.0 // mW to W
+		if val, ok := allValues[obis.ActivePowerL3.Hex]; ok {
+			result.ActivePowerL3 = obis.ActivePowerL3.Convert(val)
 		}
-		if val, ok := allValues[OBIS_GRID_FREQUENCY]; ok {
-			result.GridFrequency = float64(val) / 1000.0 // mHz to Hz
+		if val, ok := allValues[obis.GridFrequency.Hex]; ok {
+			result.GridFrequency = obis.GridFrequency.Convert(val)
 		}
-		
+
 		// Cumulative energy totals
-		if val, ok := allValues[OBIS_ENERGY_GRID_PURCHASE]; ok {
-			result.EnergyGridPurchase = float64(val) / 1000000.0 // mWh to kWh
+		if val, ok := allValues[obis.EnergyGridPurchase.Hex]; ok {
+			result.EnergyGridPurchase = obis.EnergyGridPurchase.Convert(val)
 		}
-		if val, ok := allValues[OBIS_ENERGY_GRID_FEEDIN]; ok {
-			result.EnergyGridFeedIn = float64(val) / 1000000.0 // mWh to kWh
+		if val, ok := allValues[obis.EnergyGridFeedIn.Hex]; ok {
+			result.EnergyGridFeedIn = obis.EnergyGridFeedIn.Convert(val)
 		}
-		if val, ok := allValues[OBIS_ENERGY_SOLAR_TOTAL]; ok {
-			result.EnergySolarTotal = float64(val) / 1000000.0 // mWh to kWh
+		if val, ok := allValues[obis.EnergySolarTotal.Hex]; ok {
+			result.EnergySolarTotal = obis.EnergySolarTotal.Convert(val)
 		}
-		if val, ok := allValues[OBIS_ENERGY_BATTERY_CHARGE]; ok {
-			result.EnergyBatteryCharge = float64(val) / 1000000.0 // mWh to kWh
+		if val, ok := allValues[obis.EnergyBatteryCharge.Hex]; ok {
+			result.EnergyBatteryCharge = obis.EnergyBatteryCharge.Convert(val)
 		}
-		if val, ok := allValues[OBIS_ENERGY_BATTERY_DISCHARGE]; ok {
-			result.EnergyBatteryDischarge = float64(val) / 1000000.0 // mWh to kWh
+		if val, ok := allValues[obis.EnergyBatteryDischarge.Hex]; ok {
+			result.EnergyBatteryDischarge = obis.EnergyBatteryDischarge.Convert(val)
 		}
-		if val, ok := allValues[OBIS_ENERGY_WALLBOX]; ok {
-			result.EnergyWallbox = float64(val) / 1000000.0 // mWh to kWh
+		if val, ok := allValues[obis.EnergyWallbox.Hex]; ok {
+			result.EnergyWallbox = obis.EnergyWallbox.Convert(val)
 		}
-		
-		// Note: L1 and L2 phase powers may not be available from all KSEM configurations
-		// The device may only provide total power and L3 phase power
 	}
 
 	// Extract flex values (from sumvalues endpoint)
@@ -330,7 +313,7 @@ func outputData(config *Config, data *KSEMData) error {
 		}
 
 		if config.Output.FilePath != "" {
-			if err := os.WriteFile(config.Output.FilePath, jsonData, 0644); err != nil {
+			if err := os.WriteFile(config.Output.FilePath, jsonData, 0o644); err != nil {
 				return fmt.Errorf("failed to write JSON file: %w", err)
 			}
 		} else {
@@ -339,12 +322,12 @@ func outputData(config *Config, data *KSEMData) error {
 
 	case "console":
 		fmt.Printf("\n=== KSEM Data at %s ===\n", data.Timestamp.Format("2006-01-02 15:04:05"))
-		
+
 		// Show instantaneous power flows if available (from sumvalues endpoint)
 		if data.PowerSolar > 0 || data.PowerBattery != 0 || data.PowerGrid != 0 || data.PowerHome > 0 {
 			fmt.Printf("\n--- Instantaneous Power Flows ---\n")
 			fmt.Printf("Solar Production:   %.2f W\n", data.PowerSolar)
-			
+
 			// Battery: show charging/discharging with direction
 			if data.PowerBattery > 0 {
 				fmt.Printf("Battery:            +%.2f W (charging)\n", data.PowerBattery)
@@ -353,11 +336,11 @@ func outputData(config *Config, data *KSEMData) error {
 			} else {
 				fmt.Printf("Battery:            %.2f W (idle)\n", data.PowerBattery)
 			}
-			
+
 			if data.BatterySOC > 0 {
 				fmt.Printf("Battery SOC:        %.0f%%\n", data.BatterySOC)
 			}
-			
+
 			// Grid: show importing/exporting with direction
 			if data.PowerGrid > 0 {
 				fmt.Printf("Grid:               +%.2f W (importing)\n", data.PowerGrid)
@@ -366,11 +349,11 @@ func outputData(config *Config, data *KSEMData) error {
 			} else {
 				fmt.Printf("Grid:               %.2f W\n", data.PowerGrid)
 			}
-			
+
 			fmt.Printf("Home Consumption:   %.2f W\n", data.PowerHome)
 			fmt.Printf("Wallbox:            %.2f W\n", data.PowerWallbox)
 		}
-		
+
 		// Show phase power if available (from smart-meter endpoint)
 		if data.ActivePowerTotal > 0 || data.ActivePowerL1 > 0 || data.ActivePowerL2 > 0 || data.ActivePowerL3 > 0 {
 			fmt.Printf("\n--- Phase Power ---\n")
@@ -379,11 +362,11 @@ func outputData(config *Config, data *KSEMData) error {
 			fmt.Printf("Active Power L2:    %.2f W\n", data.ActivePowerL2)
 			fmt.Printf("Active Power L3:    %.2f W\n", data.ActivePowerL3)
 		}
-		
+
 		if data.GridFrequency > 0 {
 			fmt.Printf("Grid Frequency:     %.2f Hz\n", data.GridFrequency)
 		}
-		
+
 		// Show cumulative totals if available
 		if data.EnergyGridPurchase > 0 || data.EnergyGridFeedIn > 0 {
 			fmt.Printf("\n--- Cumulative Energy Totals ---\n")
