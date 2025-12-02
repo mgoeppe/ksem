@@ -1,0 +1,59 @@
+syntax = "proto3";
+
+package proto;
+
+option go_package = "github.com/matoubidou/ksem/proto";
+
+// Timestamp from google protobuf
+message Timestamp {
+    int64 seconds = 1;
+    int32 nanos = 2;
+}
+
+// GDRs - Grid Data Records (multiple GDR messages)
+message GDRs {
+    map<string, GDR> GDRs = 1;
+    string configUuid = 2;
+}
+
+// GDR - Single Grid Data Record
+message GDR {
+    string id = 1;
+    int32 status = 2;  // 0=UNKNOWN, 1=OK, 2=WARNING, 3=ERROR
+    Timestamp timestamp = 3;
+    map<uint64, uint64> values = 4;  // OBIS code -> value
+    map<string, FlexValue> flexValues = 5;
+}
+
+// FlexValue for flexible data types
+message FlexValue {
+    int64 intValue = 1;
+    string stringValue = 2;
+}
+
+// GCRs - Grid Config Records (multiple GCR messages)
+message GCRs {
+    map<string, GCR> GCRs = 1;
+    string configUuid = 2;
+}
+
+// GCR - Single Grid Config Record
+message GCR {
+    string id = 1;
+    string label = 2;
+    int32 class = 3;  // 0=UNKNOWN, 1=CONSUMER, 2=PRODUCER, 3=HYBRID
+    repeated string sources = 4;
+    repeated uint64 codes = 5;
+    int32 devicetype = 6;
+    map<string, string> meta = 7;
+    Timestamp timestamp = 8;
+    map<string, FlexDefinition> flexDefinitions = 9;
+}
+
+// FlexDefinition for flexible field definitions
+message FlexDefinition {
+    string label = 1;
+    int32 type = 2;  // 0=INTEGER, 1=STRING
+    int32 unit = 3;  // 0=UNKNOWN, 1=AMPERE, 2=VOLT, 3=WATT, etc.
+    sint32 decimalpower = 4;
+}

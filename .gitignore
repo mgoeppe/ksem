@@ -1,0 +1,28 @@
+# Binaries
+ksem
+ksem-scraper
+*.exe
+*.dll
+*.so
+*.dylib
+
+# Test binary
+*.test
+
+# Output
+*.out
+ksem_data.json
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Config overrides (keep the example)
+config.local.yaml

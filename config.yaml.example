@@ -1,0 +1,25 @@
+# Kostal KSEM Scraper Configuration (Example)
+# Copy this to config.yaml and adjust to your setup
+
+meter:
+  host: ksem.fritz.box
+  port: 80
+  use_https: false
+  username: admin
+  password: "your-password-here"
+  timeout: 10
+
+oauth2:
+  client_id: "emos"
+  client_secret: "56951025"
+
+scraping:
+  interval: 5s
+  output: "console"
+  json_file: "ksem_data.json"
+  # Config ID options:
+  # - "smart-meter" for detailed phase power and cumulative totals
+  # - "kostal-energyflow/sumvalues" for instantaneous power flows (solar, battery, grid, home)
+  config_id: "kostal-energyflow/sumvalues"
+
+debug: false
