@@ -14,26 +14,25 @@ import (
 	"github.com/gorilla/websocket"
 	"github.com/matoubidou/ksem/obis"
 	pb "github.com/matoubidou/ksem/proto"
+	"github.com/spf13/viper"
 	"golang.org/x/oauth2"
 	"google.golang.org/protobuf/proto"
-	"gopkg.in/yaml.v3"
 )
 
 // Config holds all configuration settings
 type Config struct {
 	Meter struct {
-		Host     string `yaml:"host"`
-		Password string `yaml:"password"`
-	} `yaml:"meter"`
+		Host     string `mapstructure:"host"`
+		Password string `mapstructure:"password"`
+	} `mapstructure:"meter"`
 	Scraping struct {
-		Interval string `yaml:"interval"`
-		ConfigID string `yaml:"config_id"` // e.g., "smart-meter"
-	} `yaml:"scraping"`
+		Interval string `mapstructure:"interval"`
+	} `mapstructure:"scraping"`
 	Output struct {
-		Format   string `yaml:"format"`
-		FilePath string `yaml:"file_path"`
-	} `yaml:"output"`
-	Debug bool `yaml:"debug"`
+		Format   string `mapstructure:"format"`
+		FilePath string `mapstructure:"file_path"`
+	} `mapstructure:"output"`
+	Debug bool `mapstructure:"debug"`
 }
 
 // KSEMData represents the data structure for the KSEM meter
@@ -67,25 +66,21 @@ type KSEMData struct {
 // No need for OBIS constants anymore - using obis package
 
 func loadConfig(filename string) (*Config, error) {
-	data, err := os.ReadFile(filename)
-	if err != nil {
+	viper.SetConfigFile(filename)
+	viper.SetConfigType("yaml")
+
+	// Set defaults
+	viper.SetDefault("scraping.interval", "10s")
+	viper.SetDefault("output.format", "console")
+	viper.SetDefault("debug", false)
+
+	if err := viper.ReadInConfig(); err != nil {
 		return nil, fmt.Errorf("failed to read config file: %w", err)
 	}
 
 	var config Config
-	if err := yaml.Unmarshal(data, &config); err != nil {
+	if err := viper.Unmarshal(&config); err != nil {
 		return nil, fmt.Errorf("failed to parse config file: %w", err)
-	}
-
-	// Set defaults
-	if config.Scraping.Interval == "" {
-		config.Scraping.Interval = "10s"
-	}
-	if config.Scraping.ConfigID == "" {
-		config.Scraping.ConfigID = "smart-meter"
-	}
-	if config.Output.Format == "" {
-		config.Output.Format = "console"
 	}
 
 	return &config, nil
@@ -122,12 +117,12 @@ func authenticate(ctx context.Context, config *Config) (*oauth2.Token, error) {
 }
 
 func connectWebSocket(config *Config, token *oauth2.Token) (*websocket.Conn, error) {
-	// Build WebSocket URL
-	// Most endpoints use /values/ path
+	// Build WebSocket URL with hardcoded config_id for sumvalues endpoint
+	const configID = "kostal-energyflow/sumvalues"
 	wsURL := url.URL{
 		Scheme: "ws",
 		Host:   config.Meter.Host,
-		Path:   fmt.Sprintf("/api/data-transfer/ws/protobuf/gdr/local/values/%s", config.Scraping.ConfigID),
+		Path:   fmt.Sprintf("/api/data-transfer/ws/protobuf/gdr/local/values/%s", configID),
 	}
 
 	if config.Debug {

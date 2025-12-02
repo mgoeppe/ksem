@@ -1,176 +1,196 @@
 # KSEM Meter Scraper
 
-A Go tool for scraping real-time data from Kostal KSEM (Kostal Smart Energy Meter) devices via WebSocket and Protocol Buffers.
+A Go tool for scraping real-time energy data from Kostal KSEM (Kostal Smart Energy Meter) devices. Monitors solar production, battery status, grid power, and home consumption through WebSocket connections with Protocol Buffer encoding.
 
-## Status
+## Features
 
-✅ **OAuth2 Authentication** - Working
-✅ **WebSocket Connection** - Working
-✅ **Data Reception** - Working (receiving ~1 message/second, ~830 bytes each)
-🚧 **Protocol Buffer Decoding** - In Progress
+✅ **OAuth2 Authentication** - Automatic token management  
+✅ **WebSocket Connection** - Real-time data streaming  
+✅ **Protocol Buffer Decoding** - Efficient binary message parsing  
+✅ **Power Flow Monitoring** - Solar, battery, grid, home, and wallbox  
+✅ **Directional Indicators** - Shows charging/discharging, importing/exporting  
+✅ **Battery State of Charge** - Real-time SOC percentage  
+✅ **OBIS Code Support** - Standardized energy measurement codes  
+✅ **Multiple Output Formats** - Console display or JSON file  
 
-The application successfully connects to the KSEM meter and receives real-time data updates via WebSocket with Protocol Buffer encoding.
-
-## Architecture Discovered
-
-The KSEM meter uses a modern real-time architecture:
-
-### Authentication
-- **Protocol**: OAuth2 Resource Owner Password Credentials flow
-- **Client ID**: `emos`
-- **Client Secret**: `56951025`
-- **Token endpoint**: `http://ksem.fritz.box/api/web-login/token`
-- **Token type**: Bearer JWT (7-day expiration)
-
-### Data Protocol
-- **Protocol**: WebSocket with Protocol Buffer binary encoding
-- **WebSocket URL**: `ws://ksem.fritz.box/api/data-transfer/ws/protobuf/gdr/local/values/{config-id}`
-- **Config ID**: `smart-meter` (for main smart meter data)
-- **Authentication**: Bearer token sent as first WebSocket message
-- **Message format**: Binary Protocol Buffers (GDRs/GDR message types)
-- **Update frequency**: ~1 Hz (once per second)
-- **Message size**: ~830 bytes per message
-
-### Why HTTP REST Failed
-The meter does NOT expose data via HTTP REST endpoints. All data endpoints (`/api/dxs.json`, etc.) return 502 Bad Gateway because they don't exist. Data is exclusively available via WebSocket.
-
-## Prerequisites
-
-- Go 1.23 or higher
-- Network access to your Kostal KSEM meter
-- KSEM meter credentials (default username: admin)
-
-## Installation
+## Quick Start
 
 ```bash
-# Clone the repository
+# Clone and build
 git clone https://github.com/matoubidou/ksem.git
 cd ksem
-
-# Download dependencies
-go mod download
-
-# Build the application
 go build -o ksem
+
+# Configure
+cp config.yaml.example config.yaml
+# Edit config.yaml with your KSEM host and password
+
+# Run
+./ksem
 ```
 
 ## Configuration
 
-Edit `config.yaml` to match your setup:
+Create `config.yaml` from the example:
 
 ```yaml
 meter:
-  host: "ksem.fritz.box"  # Your KSEM meter hostname or IP
-  username: "admin"        # Default username
+  host: "ksem.fritz.box"  # Your KSEM hostname or IP
   password: "your-password-here"
 
-oauth2:
-  client_id: "emos"        # Default OAuth2 client ID
-  client_secret: "56951025" # Default OAuth2 client secret
-
 scraping:
-  interval: "10s"          # How often to display data
-  config_id: "smart-meter" # WebSocket endpoint identifier
+  interval: "5s"          # Display update interval
 
 output:
-  format: "console"        # Output format: "console" or "json"
-  file_path: ""            # Optional: path to JSON output file
+  format: "console"       # "console" or "json"
+  file_path: ""           # Optional JSON file path
 
-debug: true                # Enable debug logging
+debug: false
 ```
 
-## Usage
+**Note:** OAuth2 credentials (client_id, client_secret, username) and the WebSocket endpoint are hardcoded as they're constant for all KSEM devices.
 
-```bash
-./ksem
+## Sample Output
+
+```
+=== KSEM Data at 2025-12-02 13:36:29 ===
+
+--- Instantaneous Power Flows ---
+Solar Production:   951.00 W
+Battery:            +587.00 W (charging)
+Battery SOC:        15%
+Grid:               -0.30 W (exporting)
+Home Consumption:   291.43 W
+Wallbox:            0.00 W
 ```
 
-The tool will:
-1. Authenticate with the KSEM meter using OAuth2
-2. Connect to the WebSocket endpoint
-3. Continuously receive and decode meter data
-4. Display data at the configured interval
+### Power Flow Indicators
 
-Press `Ctrl+C` to gracefully shut down.
+- **Solar Production**: Always positive (power generated)
+- **Battery**: 
+  - Positive (+) = charging
+  - Negative (-) = discharging
+  - Zero = idle
+- **Grid**:
+  - Positive (+) = importing from grid
+  - Negative (-) = exporting to grid
+- **Home Consumption**: Always positive (power consumed)
+- **Wallbox**: Always positive (EV charging power)
 
-## Data Fields
+## Architecture
 
-The tool collects the following measurements using OBIS codes:
+### Authentication
+- **Protocol**: OAuth2 (Resource Owner Password Credentials)
+- **Credentials**: Hardcoded (client_id: `emos`, client_secret: `56951025`, username: `admin`)
+- **Token**: Bearer JWT with 7-day expiration
 
-| Field              | OBIS Code      | DXS ID   | Description               |
-| ------------------ | -------------- | -------- | ------------------------- |
-| ActivePowerTotal   | 1-0:1.4.0*255  | 67109120 | Total active power (W)    |
-| ActivePowerL1      | 1-0:21.4.0*255 | 67109376 | Active power phase L1 (W) |
-| ActivePowerL2      | 1-0:41.4.0*255 | 67109632 | Active power phase L2 (W) |
-| ActivePowerL3      | 1-0:61.4.0*255 | 67109888 | Active power phase L3 (W) |
-| GridFrequency      | 1-0:14.4.0*255 | 16780288 | Grid frequency (Hz)       |
-| ActiveEnergyImport | 1-0:1.8.0*255  | 67371264 | Imported energy (kWh)     |
-| ActiveEnergyExport | 1-0:2.8.0*255  | 67371520 | Exported energy (kWh)     |
+### Data Protocol
+- **Transport**: WebSocket over HTTP
+- **Endpoint**: `ws://host/api/data-transfer/ws/protobuf/gdr/local/values/kostal-energyflow/sumvalues`
+- **Encoding**: Protocol Buffers (binary)
+- **Update Rate**: ~1 Hz (real-time)
+### Message Structure
 
-## Protocol Buffer Message Structure
-
-Based on analysis of the KSEM web application JavaScript, the Protocol Buffer messages use these types:
-
-- **GDRs**: Container for multiple Grid Data Records
-  - Contains a map of GDR messages keyed by device ID
-  - Includes a configUuid field
-
-- **GDR**: Single Grid Data Record
-  - `id`: Device identifier
-  - `status`: Status code (0=UNKNOWN, 1=OK, 2=WARNING, 3=ERROR)
-  - `timestamp`: Measurement timestamp
+Protocol Buffer messages contain:
+- **GDRs**: Container with multiple Grid Data Records
+- **GDR**: Individual data record with:
   - `values`: Map of OBIS codes (uint64) to measurements (uint64)
-  - `flexValues`: Map of flexible values (string keys to int/string values)
+  - `flexValues`: Map of power flow keys (string) to values (int64)
+  - `timestamp`: Measurement time
+  - `status`: Device status
 
-Values are typically encoded in milli-units (mW, mWh, mHz) and must be divided by 1000 to get standard units.
+### Flex Values (Power Flows)
+- `pvPowerTotal`: Solar production (mW, sign inverted)
+- `batteryPowerTotal`: Battery power (mW, +charging/-discharging)
+- `gridPowerTotal`: Grid power (mW, +importing/-exporting)
+- `housePowerTotal`: Home consumption (mW)
+- `wallboxPowerTotal`: Wallbox consumption (mW)
+- `systemStateOfCharge`: Battery SOC (%)
 
-## Development Notes
+### OBIS Codes (Cumulative Totals)
 
-### WebSocket Implementation
+| OBIS Code      | Hex            | Description                  |
+| -------------- | -------------- | ---------------------------- |
+| 1-0:1.4.0*255  | 0x100010400FF  | Total active power (mW)      |
+| 1-0:14.4.0*255 | 0x1000E0400FF  | Grid frequency (mHz)         |
+| 1-0:1.8.0*255  | 0x100010800FF  | Grid energy purchase (mWh)   |
+| 1-0:2.8.0*255  | 0x100020800FF  | Grid energy feed-in (mWh)    |
+| 1-0:65.8.0*255 | 0x100410800FF  | Solar total energy (mWh)     |
+| 1-0:67.8.0*255 | 0x100430800FF  | Battery charge energy (mWh)  |
+| 1-0:68.8.0*255 | 0x100440800FF  | Battery discharge energy (mWh)|
+| 1-0:74.8.0*255 | 0x1004A0800FF  | Wallbox energy (mWh)         |
 
-The WebSocket connection requires:
-1. OAuth2 authentication to obtain Bearer token
-2. WebSocket connection to `ws://host/api/data-transfer/ws/protobuf/gdr/local/values/{config-id}`
-3. Immediate authentication by sending Bearer token as text message
-4. Continuous reading of binary Protocol Buffer messages
+Values are in milli-units (mW, mWh, mHz) and automatically converted to standard units.
 
-### Protocol Buffer Decoding
+## Project Structure
 
-The protobuf schema was reverse-engineered from the JavaScript app. The full schema is in `ksem.proto`. To regenerate Go code:
-
-```bash
-protoc --go_out=. --go_opt=paths=source_relative ksem.proto
+```
+ksem/
+├── main.go              # Main application
+├── proto/
+│   ├── ksem.proto       # Protocol Buffer schema
+│   ├── ksem.pb.go       # Generated protobuf code
+│   └── generate.go      # go:generate directive
+├── obis/
+│   └── obis.go          # OBIS code library with metadata
+├── config.yaml          # Your configuration (not committed)
+├── config.yaml.example  # Configuration template
+└── README.md
 ```
 
-Note: Proper protobuf decoding is still being implemented. Currently the tool receives messages but doesn't parse them yet.
+## Development
 
-Common dxsId values:
-- `16780032`: Grid power total (W)
-- `33556736`: Total production (kWh)
+### Regenerate Protocol Buffer Code
+
+```bash
+go generate ./proto
+```
+
+Or manually:
+```bash
+protoc --go_out=. --go_opt=paths=source_relative proto/ksem.proto
+```
+
+### Adding New OBIS Codes
+
+Edit `obis/obis.go` and add to the registry:
+
+```go
+var NewCode = Code{
+    Hex:         0xYOURHEXVALUE,
+    Description: "Your description",
+    Unit:        Watt,
+    ScaleFactor: 0.001,
+}
+```
 
 ## Troubleshooting
 
-### Connection Refused
-- Ensure the KSEM meter is reachable on your network
-- Verify the hostname/IP in `config.yaml`
-- Check that port 80 (HTTP/WebSocket) is accessible
+**Connection Refused**
+- Verify KSEM is reachable: `ping ksem.fritz.box`
+- Check firewall allows WebSocket on port 80
 
-### Authentication Failed
-- Verify your password in `config.yaml`
-- Special characters in password must be properly encoded
-- Default username is `admin`
+**Authentication Failed**
+- Verify password in `config.yaml`
+- Password is case-sensitive
+- Special characters must be properly quoted in YAML
 
-### No Data Received
-- Check the `config_id` setting (should be `smart-meter`)
-- Enable debug mode to see WebSocket messages
-- Verify WebSocket binary messages are being received
+**No Data Received**
+- Enable debug mode: `debug: true` in config.yaml
+- Check WebSocket messages are arriving
+- Verify timestamp in debug logs is updating
+
+**Incorrect Values**
+- Values are automatically converted from milli-units
+- Negative values indicate direction (export/discharge)
+- Check battery SOC is percentage (0-100)
 
 ## Dependencies
 
-- `golang.org/x/oauth2` - OAuth2 authentication
 - `github.com/gorilla/websocket` - WebSocket client
+- `github.com/spf13/viper` - Configuration management
+- `golang.org/x/oauth2` - OAuth2 authentication
 - `google.golang.org/protobuf` - Protocol Buffer support
-- `gopkg.in/yaml.v3` - YAML configuration parsing
 
 ## License
 
@@ -178,4 +198,4 @@ MIT
 
 ## Acknowledgments
 
-This tool was developed through analysis of the KSEM web application's JavaScript code to discover the WebSocket + Protocol Buffer architecture.
+Developed through reverse engineering of the KSEM web application to discover the WebSocket + Protocol Buffer architecture. Thanks to the Kostal team for building a modern, real-time energy monitoring system.
