@@ -1,12 +1,14 @@
-package main
+package tui
 
 import (
+	"context"
 	"fmt"
 	"strings"
 	"time"
 
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
+	"github.com/matoubidou/ksem/types"
 )
 
 // Styles
@@ -63,30 +65,48 @@ var (
 			MarginTop(1)
 )
 
-type tuiModel struct {
-	data       *KSEMData
+type model struct {
+	data       *types.KSEMData
 	err        error
 	quitting   bool
 	lastUpdate time.Time
+	dataChan   <-chan *types.KSEMData
+	errChan    <-chan error
 }
 
 type dataUpdateMsg struct {
-	data *KSEMData
+	data *types.KSEMData
 }
 
 type errMsg struct {
 	err error
 }
 
-func initialModel() tuiModel {
-	return tuiModel{}
+func initialModel(dataChan <-chan *types.KSEMData, errChan <-chan error) model {
+	return model{
+		dataChan: dataChan,
+		errChan:  errChan,
+	}
 }
 
-func (m tuiModel) Init() tea.Cmd {
-	return nil
+// waitForData waits for data from channels
+func waitForData(dataChan <-chan *types.KSEMData, errChan <-chan error) tea.Cmd {
+	return func() tea.Msg {
+		select {
+		case data := <-dataChan:
+			return dataUpdateMsg{data: data}
+		case err := <-errChan:
+			return errMsg{err: err}
+		}
+	}
 }
 
-func (m tuiModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
+func (m model) Init() tea.Cmd {
+	// Start listening to channels immediately
+	return waitForData(m.dataChan, m.errChan)
+}
+
+func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
 	case tea.KeyMsg:
 		switch msg.String() {
@@ -98,7 +118,8 @@ func (m tuiModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case dataUpdateMsg:
 		m.data = msg.data
 		m.lastUpdate = time.Now()
-		return m, nil
+		// Immediately wait for next message (event-driven)
+		return m, waitForData(m.dataChan, m.errChan)
 
 	case errMsg:
 		m.err = msg.err
@@ -108,7 +129,7 @@ func (m tuiModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	return m, nil
 }
 
-func (m tuiModel) View() string {
+func (m model) View() string {
 	if m.quitting {
 		return "Shutting down...\n"
 	}
@@ -147,7 +168,7 @@ func (m tuiModel) View() string {
 	return content + "\n" + help
 }
 
-func renderPowerFlow(data *KSEMData) string {
+func renderPowerFlow(data *types.KSEMData) string {
 	var b strings.Builder
 
 	// Visual flow diagram section header
@@ -166,7 +187,7 @@ func renderPowerFlow(data *KSEMData) string {
 	// Solar Production
 	b.WriteString(labelStyle.Render("☀️  Solar:    "))
 	b.WriteString(solarStyle.Render(fmt.Sprintf("%7.1f W", data.PowerSolar)))
-	b.WriteString(strings.Repeat(" ", 15+len(socStr))) // Match longest line
+	b.WriteString(strings.Repeat(" ", 15+len(socStr)))
 	b.WriteString("\n")
 
 	// Battery
@@ -191,29 +212,29 @@ func renderPowerFlow(data *KSEMData) string {
 		b.WriteString(gridExportStyle.Render(fmt.Sprintf("%7.1f W ⬆ exporting", data.PowerGrid)))
 	} else {
 		b.WriteString(valueStyle.Render(fmt.Sprintf("%7.1f W", data.PowerGrid)))
-		b.WriteString(strings.Repeat(" ", 13)) // Match status text length
+		b.WriteString(strings.Repeat(" ", 13))
 	}
-	b.WriteString(strings.Repeat(" ", len(socStr))) // Add SOC-width padding
+	b.WriteString(strings.Repeat(" ", len(socStr)))
 	b.WriteString("\n")
 
 	// Home Consumption
 	b.WriteString(labelStyle.Render("🏠 Home:      "))
 	b.WriteString(homeStyle.Render(fmt.Sprintf("%7.1f W", data.PowerHome)))
-	b.WriteString(strings.Repeat(" ", 15+len(socStr))) // Match longest line
+	b.WriteString(strings.Repeat(" ", 15+len(socStr)))
 	b.WriteString("\n")
 
 	// Wallbox (only if active)
 	if data.PowerWallbox > 0 {
 		b.WriteString(labelStyle.Render("🚗 Wallbox:   "))
 		b.WriteString(valueStyle.Render(fmt.Sprintf("%7.1f W", data.PowerWallbox)))
-		b.WriteString(strings.Repeat(" ", 15+len(socStr))) // Match longest line
+		b.WriteString(strings.Repeat(" ", 15+len(socStr)))
 		b.WriteString("\n")
 	}
 
 	return b.String()
 }
 
-func renderDetailedValues(data *KSEMData) string {
+func renderDetailedValues(data *types.KSEMData) string {
 	var b strings.Builder
 
 	// Only show cumulative totals if available
@@ -242,10 +263,18 @@ func renderDetailedValues(data *KSEMData) string {
 	return b.String()
 }
 
-func sendDataUpdate(p *tea.Program, data *KSEMData) {
-	p.Send(dataUpdateMsg{data: data})
+// Handler implements the output.Handler interface for TUI output
+type Handler struct{}
+
+// NewHandler creates a new TUI output handler
+func NewHandler() *Handler {
+	return &Handler{}
 }
 
-func sendError(p *tea.Program, err error) {
-	p.Send(errMsg{err: err})
+// Run starts the TUI with the given data and error channels
+func (h *Handler) Run(ctx context.Context, dataChan <-chan *types.KSEMData, errChan <-chan error) error {
+	m := initialModel(dataChan, errChan)
+	p := tea.NewProgram(m, tea.WithAltScreen())
+	_, err := p.Run()
+	return err
 }

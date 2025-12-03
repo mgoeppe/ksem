@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"log"
 	"net/url"
@@ -13,7 +12,12 @@ import (
 
 	"github.com/gorilla/websocket"
 	"github.com/matoubidou/ksem/obis"
+	"github.com/matoubidou/ksem/output"
+	outputjson "github.com/matoubidou/ksem/output/json"
+	"github.com/matoubidou/ksem/output/tui"
 	pb "github.com/matoubidou/ksem/proto"
+	"github.com/matoubidou/ksem/types"
+	"github.com/spf13/pflag"
 	"github.com/spf13/viper"
 	"golang.org/x/oauth2"
 	"google.golang.org/protobuf/proto"
@@ -25,9 +29,6 @@ type Config struct {
 		Host     string `mapstructure:"host"`
 		Password string `mapstructure:"password"`
 	} `mapstructure:"meter"`
-	Scraping struct {
-		Interval string `mapstructure:"interval"`
-	} `mapstructure:"scraping"`
 	Output struct {
 		Format   string `mapstructure:"format"`
 		FilePath string `mapstructure:"file_path"`
@@ -35,43 +36,17 @@ type Config struct {
 	Debug bool `mapstructure:"debug"`
 }
 
-// KSEMData represents the data structure for the KSEM meter
-type KSEMData struct {
-	Timestamp        time.Time `json:"timestamp"`
-	ActivePowerTotal float64   `json:"active_power_total"` // 1-0:1.4.0*255 - Current total power
-	ActivePowerL1    float64   `json:"active_power_l1"`    // 1-0:21.4.0*255
-	ActivePowerL2    float64   `json:"active_power_l2"`    // 1-0:41.4.0*255
-	ActivePowerL3    float64   `json:"active_power_l3"`    // 1-0:61.4.0*255
-	GridFrequency    float64   `json:"grid_frequency"`     // 1-0:14.4.0*255
-
-	// Instantaneous power flows (from sumvalues endpoint)
-	PowerSolar   float64 `json:"power_solar"`   // Solar production (W, positive)
-	PowerBattery float64 `json:"power_battery"` // Battery power (W, + charging, - discharging)
-	PowerGrid    float64 `json:"power_grid"`    // Grid power (W, + importing, - exporting)
-	PowerHome    float64 `json:"power_home"`    // Home consumption (W, positive)
-	PowerWallbox float64 `json:"power_wallbox"` // Wallbox consumption (W, positive)
-	BatterySOC   float64 `json:"battery_soc"`   // Battery state of charge (%)
-
-	// Cumulative energy totals
-	EnergyGridPurchase float64 `json:"energy_grid_purchase"` // Total purchased from grid
-	EnergyGridFeedIn   float64 `json:"energy_grid_feedin"`   // Total fed into grid
-
-	// Cumulative energy by source (if available)
-	EnergySolarTotal       float64 `json:"energy_solar_total"`       // Total solar production
-	EnergyBatteryCharge    float64 `json:"energy_battery_charge"`    // Total battery charged
-	EnergyBatteryDischarge float64 `json:"energy_battery_discharge"` // Total battery discharged
-	EnergyWallbox          float64 `json:"energy_wallbox"`           // Total wallbox consumption
-}
-
-// No need for OBIS constants anymore - using obis package
-
 func loadConfig(filename string) (*Config, error) {
-	viper.SetConfigFile(filename)
-	viper.SetConfigType("yaml")
+	if filename != "" {
+		viper.SetConfigFile(filename)
+	} else {
+		viper.SetConfigName("config")
+		viper.SetConfigType("yaml")
+		viper.AddConfigPath(".")
+	}
 
 	// Set defaults
-	viper.SetDefault("scraping.interval", "10s")
-	viper.SetDefault("output.format", "console")
+	viper.SetDefault("output.format", "tui")
 	viper.SetDefault("debug", false)
 
 	if err := viper.ReadInConfig(); err != nil {
@@ -148,13 +123,9 @@ func connectWebSocket(config *Config, token *oauth2.Token) (*websocket.Conn, err
 	return conn, nil
 }
 
-func parseProtobufMessage(data []byte, config *Config) (*KSEMData, error) {
+func parseProtobufMessage(data []byte, config *Config) (*types.KSEMData, error) {
 	if config.Debug {
 		log.Printf("Received %d bytes of protobuf data", len(data))
-	}
-
-	result := &KSEMData{
-		Timestamp: time.Now(),
 	}
 
 	// Parse the GDRs message using generated protobuf code
@@ -189,17 +160,9 @@ func parseProtobufMessage(data []byte, config *Config) (*KSEMData, error) {
 		}
 	}
 
-	// Log flex values for debugging
-	if config.Debug && len(allFlexValues) > 0 {
-		log.Printf("Parsed %d flex values from protobuf message", len(allFlexValues))
-		for key, value := range allFlexValues {
-			log.Printf("  Flex[%s] = %d (%.2f W)", key, value, float64(value)/1000.0)
-		}
-	}
-
-	// Extract OBIS values and convert units using obis package
-	if allValues != nil {
-		if config.Debug {
+	// Debug logging for raw values
+	if config.Debug {
+		if len(allValues) > 0 {
 			log.Printf("Parsed %d OBIS values from protobuf message", len(allValues))
 			for obisHex, value := range allValues {
 				if code, ok := obis.Lookup(obisHex); ok {
@@ -209,179 +172,112 @@ func parseProtobufMessage(data []byte, config *Config) (*KSEMData, error) {
 				}
 			}
 		}
-
-		// Extract known OBIS values
-		if val, ok := allValues[obis.ActivePowerTotal.Hex]; ok {
-			result.ActivePowerTotal = obis.ActivePowerTotal.Convert(val)
-		}
-		if val, ok := allValues[obis.ActivePowerL1.Hex]; ok {
-			result.ActivePowerL1 = obis.ActivePowerL1.Convert(val)
-		}
-		if val, ok := allValues[obis.ActivePowerL2.Hex]; ok {
-			result.ActivePowerL2 = obis.ActivePowerL2.Convert(val)
-		}
-		if val, ok := allValues[obis.ActivePowerL3.Hex]; ok {
-			result.ActivePowerL3 = obis.ActivePowerL3.Convert(val)
-		}
-		if val, ok := allValues[obis.GridFrequency.Hex]; ok {
-			result.GridFrequency = obis.GridFrequency.Convert(val)
-		}
-
-		// Cumulative energy totals
-		if val, ok := allValues[obis.EnergyGridPurchase.Hex]; ok {
-			result.EnergyGridPurchase = obis.EnergyGridPurchase.Convert(val)
-		}
-		if val, ok := allValues[obis.EnergyGridFeedIn.Hex]; ok {
-			result.EnergyGridFeedIn = obis.EnergyGridFeedIn.Convert(val)
-		}
-		if val, ok := allValues[obis.EnergySolarTotal.Hex]; ok {
-			result.EnergySolarTotal = obis.EnergySolarTotal.Convert(val)
-		}
-		if val, ok := allValues[obis.EnergyBatteryCharge.Hex]; ok {
-			result.EnergyBatteryCharge = obis.EnergyBatteryCharge.Convert(val)
-		}
-		if val, ok := allValues[obis.EnergyBatteryDischarge.Hex]; ok {
-			result.EnergyBatteryDischarge = obis.EnergyBatteryDischarge.Convert(val)
-		}
-		if val, ok := allValues[obis.EnergyWallbox.Hex]; ok {
-			result.EnergyWallbox = obis.EnergyWallbox.Convert(val)
+		if len(allFlexValues) > 0 {
+			log.Printf("Parsed %d flex values from protobuf message", len(allFlexValues))
+			for key, value := range allFlexValues {
+				log.Printf("  Flex[%s] = %d (%.2f W)", key, value, float64(value)/1000.0)
+			}
 		}
 	}
 
-	// Extract flex values (from sumvalues endpoint)
-	if allFlexValues != nil {
-		// Solar power (pvPowerTotal or pvPowerACSum) - negative means producing
-		if val, ok := allFlexValues["pvPowerTotal"]; ok {
-			result.PowerSolar = -float64(val) / 1000.0 // Invert sign and mW to W
-		} else if val, ok := allFlexValues["pvPowerACSum"]; ok {
-			result.PowerSolar = -float64(val) / 1000.0
-		}
+	// Parse all values using OBIS package
+	parsed := obis.ParseValues(allValues, allFlexValues, config.Debug)
 
-		// Battery power - positive = charging, negative = discharging
-		if val, ok := allFlexValues["batteryPowerTotal"]; ok {
-			result.PowerBattery = float64(val) / 1000.0 // mW to W
-		}
-
-		// Grid power - positive = importing, negative = exporting
-		if val, ok := allFlexValues["gridPowerTotal"]; ok {
-			result.PowerGrid = float64(val) / 1000.0 // mW to W
-		}
-
-		// Home consumption
-		if val, ok := allFlexValues["housePowerTotal"]; ok {
-			result.PowerHome = float64(val) / 1000.0 // mW to W
-		}
-
-		// Wallbox consumption
-		if val, ok := allFlexValues["wallboxPowerTotal"]; ok {
-			result.PowerWallbox = float64(val) / 1000.0 // mW to W
-		}
-
-		// Battery state of charge (%)
-		if val, ok := allFlexValues["systemStateOfCharge"]; ok {
-			result.BatterySOC = float64(val) // Already in %
-		}
+	// Build result structure
+	result := &types.KSEMData{
+		Timestamp:              time.Now(),
+		ActivePowerTotal:       parsed.ActivePowerTotal,
+		ActivePowerL1:          parsed.ActivePowerL1,
+		ActivePowerL2:          parsed.ActivePowerL2,
+		ActivePowerL3:          parsed.ActivePowerL3,
+		GridFrequency:          parsed.GridFrequency,
+		EnergyGridPurchase:     parsed.EnergyGridPurchase,
+		EnergyGridFeedIn:       parsed.EnergyGridFeedIn,
+		EnergySolarTotal:       parsed.EnergySolarTotal,
+		EnergyBatteryCharge:    parsed.EnergyBatteryCharge,
+		EnergyBatteryDischarge: parsed.EnergyBatteryDischarge,
+		EnergyWallbox:          parsed.EnergyWallbox,
+		PowerSolar:             parsed.PowerSolar,
+		PowerBattery:           parsed.PowerBattery,
+		PowerGrid:              parsed.PowerGrid,
+		PowerHome:              parsed.PowerHome,
+		PowerWallbox:           parsed.PowerWallbox,
+		BatterySOC:             parsed.BatterySOC,
 	}
 
 	return result, nil
 }
 
-func outputData(config *Config, data *KSEMData) error {
-	switch config.Output.Format {
-	case "json":
-		jsonData, err := json.MarshalIndent(data, "", "  ")
-		if err != nil {
-			return fmt.Errorf("failed to marshal data to JSON: %w", err)
-		}
+// runOutputHandler starts the output handler with channel-based data flow
+func runOutputHandler(ctx context.Context, conn *websocket.Conn, config *Config, handler output.Handler) {
+	dataChan := make(chan *types.KSEMData, 10)
+	errChan := make(chan error, 1)
 
-		if config.Output.FilePath != "" {
-			if err := os.WriteFile(config.Output.FilePath, jsonData, 0o644); err != nil {
-				return fmt.Errorf("failed to write JSON file: %w", err)
-			}
-		} else {
-			fmt.Println(string(jsonData))
-		}
+	// Start websocket reader goroutine
+	go readWebSocket(ctx, conn, config, dataChan, errChan)
 
-	case "console":
-		fmt.Printf("\n=== KSEM Data at %s ===\n", data.Timestamp.Format("2006-01-02 15:04:05"))
-
-		// Show instantaneous power flows if available (from sumvalues endpoint)
-		if data.PowerSolar > 0 || data.PowerBattery != 0 || data.PowerGrid != 0 || data.PowerHome > 0 {
-			fmt.Printf("\n--- Instantaneous Power Flows ---\n")
-			fmt.Printf("Solar Production:   %.2f W\n", data.PowerSolar)
-
-			// Battery: show charging/discharging with direction
-			if data.PowerBattery > 0 {
-				fmt.Printf("Battery:            +%.2f W (charging)\n", data.PowerBattery)
-			} else if data.PowerBattery < 0 {
-				fmt.Printf("Battery:            %.2f W (discharging)\n", data.PowerBattery)
-			} else {
-				fmt.Printf("Battery:            %.2f W (idle)\n", data.PowerBattery)
-			}
-
-			if data.BatterySOC > 0 {
-				fmt.Printf("Battery SOC:        %.0f%%\n", data.BatterySOC)
-			}
-
-			// Grid: show importing/exporting with direction
-			if data.PowerGrid > 0 {
-				fmt.Printf("Grid:               +%.2f W (importing)\n", data.PowerGrid)
-			} else if data.PowerGrid < 0 {
-				fmt.Printf("Grid:               %.2f W (exporting)\n", data.PowerGrid)
-			} else {
-				fmt.Printf("Grid:               %.2f W\n", data.PowerGrid)
-			}
-
-			fmt.Printf("Home Consumption:   %.2f W\n", data.PowerHome)
-			fmt.Printf("Wallbox:            %.2f W\n", data.PowerWallbox)
-		}
-
-		// Show phase power if available (from smart-meter endpoint)
-		if data.ActivePowerTotal > 0 || data.ActivePowerL1 > 0 || data.ActivePowerL2 > 0 || data.ActivePowerL3 > 0 {
-			fmt.Printf("\n--- Phase Power ---\n")
-			fmt.Printf("Active Power Total: %.2f W\n", data.ActivePowerTotal)
-			fmt.Printf("Active Power L1:    %.2f W\n", data.ActivePowerL1)
-			fmt.Printf("Active Power L2:    %.2f W\n", data.ActivePowerL2)
-			fmt.Printf("Active Power L3:    %.2f W\n", data.ActivePowerL3)
-		}
-
-		if data.GridFrequency > 0 {
-			fmt.Printf("Grid Frequency:     %.2f Hz\n", data.GridFrequency)
-		}
-
-		// Show cumulative totals if available
-		if data.EnergyGridPurchase > 0 || data.EnergyGridFeedIn > 0 {
-			fmt.Printf("\n--- Cumulative Energy Totals ---\n")
-			fmt.Printf("Grid Purchase:      %.3f kWh\n", data.EnergyGridPurchase)
-			fmt.Printf("Grid Feed-in:       %.3f kWh\n", data.EnergyGridFeedIn)
-			fmt.Printf("Solar Production:   %.3f kWh\n", data.EnergySolarTotal)
-			fmt.Printf("Battery Charged:    %.3f kWh\n", data.EnergyBatteryCharge)
-			fmt.Printf("Battery Discharged: %.3f kWh\n", data.EnergyBatteryDischarge)
-			fmt.Printf("Wallbox:            %.3f kWh\n", data.EnergyWallbox)
-		}
-
-	default:
-		return fmt.Errorf("unknown output format: %s", config.Output.Format)
+	// Start output handler
+	if err := handler.Run(ctx, dataChan, errChan); err != nil {
+		log.Printf("Output handler error: %v", err)
 	}
+	log.Println("Shutting down gracefully...")
+}
 
-	return nil
+// readWebSocket reads from websocket and sends data to channels
+func readWebSocket(ctx context.Context, conn *websocket.Conn, config *Config, dataChan chan<- *types.KSEMData, errChan chan<- error) {
+	defer close(dataChan)
+	defer close(errChan)
+
+	for {
+		select {
+		case <-ctx.Done():
+			return
+		default:
+			msgType, message, err := conn.ReadMessage()
+			if err != nil {
+				errChan <- fmt.Errorf("websocket read error: %w", err)
+				return
+			}
+
+			if config.Debug {
+				log.Printf("Received WebSocket message type: %d, size: %d bytes", msgType, len(message))
+			}
+
+			data, err := parseProtobufMessage(message, config)
+			if err != nil {
+				log.Printf("Error parsing data: %v", err)
+				continue
+			}
+
+			// Send data to channel (non-blocking)
+			select {
+			case dataChan <- data:
+			case <-ctx.Done():
+				return
+			default:
+				// Channel full, skip this update
+			}
+		}
+	}
 }
 
 func main() {
+	// Define command line flags using pflag
+	pflag.StringP("config", "c", "config.yaml", "Path to configuration file")
+	pflag.Parse()
+
+	// Bind pflags to viper
+	viper.BindPFlags(pflag.CommandLine)
+
 	// Load configuration
-	config, err := loadConfig("config.yaml")
+	configFile := viper.GetString("config")
+	config, err := loadConfig(configFile)
 	if err != nil {
 		log.Fatalf("Failed to load config: %v", err)
 	}
 
 	if config.Debug {
 		log.Println("Debug mode enabled")
-	}
-
-	// Parse scraping interval
-	interval, err := time.ParseDuration(config.Scraping.Interval)
-	if err != nil {
-		log.Fatalf("Invalid scraping interval: %v", err)
 	}
 
 	// Create context for graceful shutdown
@@ -413,66 +309,21 @@ func main() {
 	}
 	defer conn.Close()
 
-	log.Printf("Receiving data updates (displaying every %s)", interval)
+	// Create output handler based on configuration
+	var handler output.Handler
+	switch config.Output.Format {
+	case "tui":
+		log.Println("Starting TUI...")
+		handler = tui.NewHandler()
 
-	// Create ticker for periodic output
-	ticker := time.NewTicker(interval)
-	defer ticker.Stop()
+	case "json":
+		log.Println("Starting JSON output mode...")
+		handler = outputjson.NewHandler(config.Output.FilePath)
 
-	var lastData *KSEMData
-	dataChan := make(chan *KSEMData, 1)
-
-	// Goroutine to continuously read from WebSocket
-	go func() {
-		for {
-			select {
-			case <-ctx.Done():
-				return
-			default:
-				msgType, message, err := conn.ReadMessage()
-				if err != nil {
-					log.Printf("Error reading from WebSocket: %v", err)
-					cancel()
-					return
-				}
-
-				if config.Debug {
-					log.Printf("Received WebSocket message type: %d, size: %d bytes", msgType, len(message))
-				}
-
-				data, err := parseProtobufMessage(message, config)
-				if err != nil {
-					log.Printf("Error parsing data: %v", err)
-					continue
-				}
-
-				// Send latest data to channel (non-blocking)
-				select {
-				case dataChan <- data:
-				default:
-				}
-			}
-		}
-	}()
-
-	// Main loop: output data at configured intervals
-	for {
-		select {
-		case <-ctx.Done():
-			log.Println("Shutting down gracefully...")
-			return
-
-		case data := <-dataChan:
-			lastData = data
-
-		case <-ticker.C:
-			if lastData != nil {
-				if err := outputData(config, lastData); err != nil {
-					log.Printf("Error outputting data: %v", err)
-				}
-			} else {
-				log.Println("No data received yet...")
-			}
-		}
+	default:
+		log.Fatalf("Unknown output format: %s (supported: tui, json)", config.Output.Format)
 	}
+
+	// Run the output handler
+	runOutputHandler(ctx, conn, config, handler)
 }

@@ -12,9 +12,13 @@ ksem-scraper
 # Output
 *.out
 ksem_data.json
+output.json
 
-# Configuration (contains sensitive password)
+# Configuration files (contain sensitive passwords)
+# Keep only *.example files in git
 config.yaml
+config*.yaml
+!config*.example
 
 # IDE
 .idea/
@@ -26,6 +30,3 @@ config.yaml
 # OS
 .DS_Store
 Thumbs.db
-
-# Config overrides (keep the example)
-config.local.yaml

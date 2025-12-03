@@ -4,6 +4,9 @@ A Go tool for scraping real-time energy data from Kostal KSEM (Kostal Smart Ener
 
 ## Features
 
+✅ **Real-Time Terminal UI** - Beautiful live-updating TUI powered by Bubbletea
+✅ **Event-Driven Architecture** - Updates instantly as data arrives from websocket
+✅ **Multiple Output Formats** - Terminal UI or JSON (stdout/file)
 ✅ **OAuth2 Authentication** - Automatic token management
 ✅ **WebSocket Connection** - Real-time data streaming
 ✅ **Protocol Buffer Decoding** - Efficient binary message parsing
@@ -11,7 +14,6 @@ A Go tool for scraping real-time energy data from Kostal KSEM (Kostal Smart Ener
 ✅ **Directional Indicators** - Shows charging/discharging, importing/exporting
 ✅ **Battery State of Charge** - Real-time SOC percentage
 ✅ **OBIS Code Support** - Standardized energy measurement codes
-✅ **Multiple Output Formats** - Console display or JSON file
 
 ## Quick Start
 
@@ -38,30 +40,49 @@ meter:
   host: "ksem.fritz.box"  # Your KSEM hostname or IP
   password: "your-password-here"
 
-scraping:
-  interval: "5s"          # Display update interval
-
 output:
-  format: "console"       # "console" or "json"
-  file_path: ""           # Optional JSON file path
+  format: "tui"           # "tui" (terminal UI) or "json"
+  file_path: ""           # For JSON: optional file path (empty = stdout)
 
-debug: false
+debug: false              # Enable debug logging
 ```
 
 **Note:** OAuth2 credentials (client_id, client_secret, username) and the WebSocket endpoint are hardcoded as they're constant for all KSEM devices.
 
+## Output Modes
+
+### TUI Mode (default)
+Real-time terminal UI with color-coded power flow visualization. Press **q** or **Ctrl+C** to quit.
+
+### JSON Mode
+Outputs JSON data to stdout or file as events arrive from websocket. Useful for:
+- Integration with other tools
+- Data logging and analysis
+- Building custom backends (e.g., GraphQL/REST APIs)
+
+## Controls
+
+- **q** or **Ctrl+C**: Quit the application
+- Data updates automatically in real-time as websocket events arrive
+
 ## Sample Output
 
-```
-=== KSEM Data at 2025-12-02 13:36:29 ===
+The application displays a real-time terminal UI showing:
 
---- Instantaneous Power Flows ---
-Solar Production:   951.00 W
-Battery:            +587.00 W (charging)
-Battery SOC:        15%
-Grid:               -0.30 W (exporting)
-Home Consumption:   291.43 W
-Wallbox:            0.00 W
+```
+╭─────────────────────────────────────────────────────╮
+│  ⚡ KSEM Energy Monitor                             │
+│                                                     │
+│  2025-12-03 15:04:23                                │
+│                                                     │
+│  ⚡ Power Flow                                       │
+│                                                     │
+│  ☀️  Solar:    951.0 W                              │
+│  🔋 Battery:   587.0 W ⬆ charging  [15%]           │
+│  🔌 Grid:       -0.3 W ⬆ exporting                  │
+│  🏠 Home:      291.4 W                              │
+│  🔌 Wallbox:     0.0 W                              │
+╰─────────────────────────────────────────────────────╯
 ```
 
 ### Power Flow Indicators
@@ -78,6 +99,11 @@ Wallbox:            0.00 W
 - **Wallbox**: Always positive (EV charging power)
 
 ## Architecture
+
+### Event-Driven Updates
+- **Model**: Real-time display updates triggered by websocket events
+- **No Polling**: Data shown immediately as it arrives (typically ~1 Hz from device)
+- **UI Framework**: Bubbletea for reactive terminal UI
 
 ### Authentication
 - **Protocol**: OAuth2 (Resource Owner Password Credentials)

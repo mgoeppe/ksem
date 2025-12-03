@@ -8,17 +8,11 @@ meter:
   # KSEM password (username is always "admin")
   password: "your-password-here"
 
-scraping:
-  # How often to display updated data
-  # Examples: "5s", "10s", "30s", "1m"
-  interval: 5s
-
 output:
-  # Output format: "console" or "json"
-  format: console
+  # Output format: "tui" (terminal UI) or "json"
+  format: tui
 
-  # Optional: path to write JSON output
-  # Leave empty to print to stdout
+  # For JSON output: optional file path (leave empty for stdout)
   file_path: ""
 
 # Enable debug logging (shows protobuf messages, auth details, etc.)
