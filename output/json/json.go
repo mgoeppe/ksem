@@ -13,22 +13,30 @@ import (
 
 // Handler implements the output.Handler interface for JSON output
 type Handler struct {
-	FilePath        string
-	IntervalSeconds int
+	FilePath string
+	Interval string
 }
 
 // NewHandler creates a new JSON output handler
-func NewHandler(filePath string, intervalSeconds int) *Handler {
+func NewHandler(filePath string, interval string) *Handler {
 	return &Handler{
-		FilePath:        filePath,
-		IntervalSeconds: intervalSeconds,
+		FilePath: filePath,
+		Interval: interval,
 	}
 }
 
 // Run starts the JSON output mode
 func (h *Handler) Run(ctx context.Context, dataChan <-chan *types.KSEMData, errChan <-chan error) error {
 	var lastData *types.KSEMData
-	ticker := time.NewTicker(time.Duration(h.IntervalSeconds) * time.Second)
+
+	// Parse duration string
+	duration, err := time.ParseDuration(h.Interval)
+	if err != nil {
+		log.Warnf("Invalid interval '%s', defaulting to 1s: %v", h.Interval, err)
+		duration = time.Second
+	}
+
+	ticker := time.NewTicker(duration)
 	defer ticker.Stop()
 
 	for {

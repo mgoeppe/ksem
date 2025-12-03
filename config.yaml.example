@@ -15,9 +15,10 @@ output:
   # For JSON output: optional file path (leave empty for stdout)
   file_path: ""
 
-  # Output interval in seconds (for JSON format)
+  # Output interval as Go duration (for JSON format)
+  # Examples: 1s (1 second), 5s, 30s, 1m (1 minute), 5m, 1h (1 hour)
   # Controls how often JSON data is printed
-  interval_seconds: 1
+  interval: "1s"
 
 # Enable debug logging (shows protobuf messages, auth details, etc.)
 debug: false
