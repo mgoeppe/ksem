@@ -4,16 +4,18 @@ A Go tool for scraping real-time energy data from Kostal KSEM (Kostal Smart Ener
 
 ## Features
 
-✅ **Real-Time Terminal UI** - Beautiful live-updating TUI powered by Bubbletea
-✅ **Event-Driven Architecture** - Updates instantly as data arrives from websocket
-✅ **Multiple Output Formats** - Terminal UI or JSON (stdout/file)
-✅ **OAuth2 Authentication** - Automatic token management
-✅ **WebSocket Connection** - Real-time data streaming
-✅ **Protocol Buffer Decoding** - Efficient binary message parsing
-✅ **Power Flow Monitoring** - Solar, battery, grid, home, and wallbox
-✅ **Directional Indicators** - Shows charging/discharging, importing/exporting
-✅ **Battery State of Charge** - Real-time SOC percentage
-✅ **OBIS Code Support** - Standardized energy measurement codes
+- ✅ **Real-Time Terminal UI** - Beautiful live-updating TUI powered by Bubbletea
+- ✅ **Event-Driven Architecture** - Updates instantly as data arrives from websocket
+- ✅ **Multiple Output Formats** - Terminal UI, JSON (stdout/file), or SQLite database
+- ✅ **Interval Control** - Configure output frequency for JSON and SQLite modes
+- ✅ **OAuth2 Authentication** - Automatic token management
+- ✅ **WebSocket Connection** - Real-time data streaming
+- ✅ **Protocol Buffer Decoding** - Efficient binary message parsing
+- ✅ **Power Flow Monitoring** - Solar, battery, grid, home, and wallbox
+- ✅ **Directional Indicators** - Shows charging/discharging, importing/exporting
+- ✅ **Battery State of Charge** - Real-time SOC percentage
+- ✅ **OBIS Code Support** - Standardized energy measurement codes
+- ✅ **Docker Support** - Easy containerized deployment
 
 ## Quick Start
 
@@ -29,6 +31,14 @@ cp config.yaml.example config.yaml
 
 # Run
 ./ksem
+
+# Or with Docker
+docker run -d \
+  --name ksem-monitor \
+  -v $(pwd)/config.yaml:/app/config/config.yaml:ro \
+  -v $(pwd)/data:/app/data \
+  --restart unless-stopped \
+  ksem:latest
 ```
 
 ## Configuration
@@ -41,8 +51,10 @@ meter:
   password: "your-password-here"
 
 output:
-  format: "tui"           # "tui" (terminal UI) or "json"
+  format: "tui"           # "tui" (terminal UI), "json", or "sqlite"
   file_path: ""           # For JSON: optional file path (empty = stdout)
+                          # For SQLite: required database path (e.g., "ksem.db")
+  interval: "1s"          # Output interval for JSON/SQLite (e.g., "1s", "5s", "1m")
 
 debug: false              # Enable debug logging
 ```
@@ -55,10 +67,43 @@ debug: false              # Enable debug logging
 Real-time terminal UI with color-coded power flow visualization. Press **q** or **Ctrl+C** to quit.
 
 ### JSON Mode
-Outputs JSON data to stdout or file as events arrive from websocket. Useful for:
+Outputs JSON data to stdout or file at configured intervals. Useful for:
 - Integration with other tools
 - Data logging and analysis
 - Building custom backends (e.g., GraphQL/REST APIs)
+
+Example:
+```bash
+./ksem -f json -o output.json -i 5s
+```
+
+### SQLite Mode
+Stores data in a SQLite database at configured intervals. Perfect for:
+- Long-term data storage
+- Historical analysis
+- Grafana/visualization tools
+
+Example:
+```bash
+./ksem -f sqlite -o ksem.db -i 10s
+```
+
+Database schema:
+```sql
+CREATE TABLE ksem_data (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    timestamp TEXT NOT NULL,
+    active_power_total REAL,
+    grid_frequency REAL,
+    energy_grid_purchase REAL,
+    energy_grid_feedin REAL,
+    power_solar REAL,
+    power_battery REAL,
+    power_grid REAL,
+    power_home REAL,
+    battery_soc REAL
+);
+```
 
 ## Controls
 
@@ -69,21 +114,7 @@ Outputs JSON data to stdout or file as events arrive from websocket. Useful for:
 
 The application displays a real-time terminal UI showing:
 
-```
-╭─────────────────────────────────────────────────────╮
-│  ⚡ KSEM Energy Monitor                             │
-│                                                     │
-│  2025-12-03 15:04:23                                │
-│                                                     │
-│  ⚡ Power Flow                                       │
-│                                                     │
-│  ☀️  Solar:    951.0 W                              │
-│  🔋 Battery:   587.0 W ⬆ charging  [15%]           │
-│  🔌 Grid:       -0.3 W ⬆ exporting                  │
-│  🏠 Home:      291.4 W                              │
-│  🔌 Wallbox:     0.0 W                              │
-╰─────────────────────────────────────────────────────╯
-```
+![](./docs/img/tui.png)
 
 ### Power Flow Indicators
 
@@ -153,15 +184,46 @@ Values are in milli-units (mW, mWh, mHz) and automatically converted to standard
 ```
 ksem/
 ├── main.go              # Main application
-├── proto/
-│   ├── ksem.proto       # Protocol Buffer schema
-│   ├── ksem.pb.go       # Generated protobuf code
-│   └── generate.go      # go:generate directive
-├── obis/
-│   └── obis.go          # OBIS code library with metadata
+├── pkg/
+│   ├── proto/
+│   │   ├── ksem.proto   # Protocol Buffer schema
+│   │   ├── ksem.pb.go   # Generated protobuf code
+│   │   └── generate.go  # go:generate directive
+│   ├── obis/
+│   │   └── obis.go      # OBIS code library with metadata
+│   ├── types/
+│   │   └── types.go     # Shared data structures
+│   └── output/
+│       ├── output.go    # Output handler interface
+│       ├── tui/         # Terminal UI implementation
+│       ├── json/        # JSON output implementation
+│       └── sqlite/      # SQLite output implementation
+├── Dockerfile           # Docker container definition
+├── .dockerignore        # Docker build exclusions
+├── DOCKER.md            # Docker deployment guide
 ├── config.yaml          # Your configuration (not committed)
 ├── config.yaml.example  # Configuration template
 └── README.md
+```
+
+## Docker Deployment
+
+See [DOCKER.md](DOCKER.md) for detailed Docker deployment instructions.
+
+Quick start:
+```bash
+# Build the image
+docker build -t ksem:latest .
+
+# Run with config and data volumes
+docker run -d \
+  --name ksem-monitor \
+  -v $(pwd)/config.yaml:/app/config/config.yaml:ro \
+  -v $(pwd)/data:/app/data \
+  -e CONFIG_PATH=/app/config/config.yaml \
+  -e SQLITE_PATH=/app/data/ksem.db \
+  --restart unless-stopped \
+  ksem:latest
 ```
 
 ## Development
@@ -169,17 +231,17 @@ ksem/
 ### Regenerate Protocol Buffer Code
 
 ```bash
-go generate ./proto
+go generate ./pkg/proto
 ```
 
 Or manually:
 ```bash
-protoc --go_out=. --go_opt=paths=source_relative proto/ksem.proto
+protoc --go_out=. --go_opt=paths=source_relative pkg/proto/ksem.proto
 ```
 
 ### Adding New OBIS Codes
 
-Edit `obis/obis.go` and add to the registry:
+Edit `pkg/obis/obis.go` and add to the registry:
 
 ```go
 var NewCode = Code{
@@ -215,8 +277,13 @@ var NewCode = Code{
 
 - `github.com/gorilla/websocket` - WebSocket client
 - `github.com/spf13/viper` - Configuration management
+- `github.com/spf13/pflag` - Command-line flags
+- `github.com/sirupsen/logrus` - Structured logging
+- `github.com/charmbracelet/bubbletea` - Terminal UI framework
+- `github.com/charmbracelet/lipgloss` - Terminal styling
 - `golang.org/x/oauth2` - OAuth2 authentication
 - `google.golang.org/protobuf` - Protocol Buffer support
+- `modernc.org/sqlite` - Pure Go SQLite driver
 
 ## License
 

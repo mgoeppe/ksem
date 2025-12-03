@@ -6,7 +6,7 @@
    ```bash
    # Copy example config
    cp config.yaml.example config.yaml
-   
+
    # Edit with your KSEM credentials
    nano config.yaml
    ```
