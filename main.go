@@ -3,7 +3,6 @@ package main
 import (
 	"context"
 	"fmt"
-	"io"
 	"log"
 	"net/url"
 	"os"
@@ -294,11 +293,6 @@ func main() {
 		log.Println("Shutdown signal received, stopping...")
 		cancel()
 	}()
-
-	// Disable log output for TUI mode to avoid interfering with terminal rendering
-	if config.Output.Format == "tui" {
-		log.SetOutput(io.Discard)
-	}
 
 	// Authenticate
 	if config.Output.Format != "tui" {
