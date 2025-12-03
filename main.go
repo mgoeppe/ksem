@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"fmt"
+	"io"
 	"log"
 	"net/url"
 	"os"
@@ -294,15 +295,24 @@ func main() {
 		cancel()
 	}()
 
+	// Disable log output for TUI mode to avoid interfering with terminal rendering
+	if config.Output.Format == "tui" {
+		log.SetOutput(io.Discard)
+	}
+
 	// Authenticate
-	log.Println("Authenticating with KSEM meter...")
+	if config.Output.Format != "tui" {
+		log.Println("Authenticating with KSEM meter...")
+	}
 	token, err := authenticate(ctx, config)
 	if err != nil {
 		log.Fatalf("Authentication failed: %v", err)
 	}
 
 	// Connect to WebSocket
-	log.Println("Connecting to WebSocket...")
+	if config.Output.Format != "tui" {
+		log.Println("Connecting to WebSocket...")
+	}
 	conn, err := connectWebSocket(config, token)
 	if err != nil {
 		log.Fatalf("WebSocket connection failed: %v", err)
@@ -313,7 +323,6 @@ func main() {
 	var handler output.Handler
 	switch config.Output.Format {
 	case "tui":
-		log.Println("Starting TUI...")
 		handler = tui.NewHandler()
 
 	case "json":
