@@ -1,0 +1,13 @@
+# Ignore SQLite database files
+*.db
+*.db-shm
+*.db-wal
+
+# Ignore data directory
+data/
+
+# Keep config example but ignore actual config
+config.yaml
+
+# Docker
+.dockerignore
