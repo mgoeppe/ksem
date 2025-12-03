@@ -264,6 +264,11 @@ func readWebSocket(ctx context.Context, conn *websocket.Conn, config *Config, da
 func main() {
 	// Define command line flags using pflag
 	pflag.StringP("config", "c", "config.yaml", "Path to configuration file")
+	pflag.String("host", "", "KSEM meter hostname or IP address")
+	pflag.String("password", "", "KSEM meter admin password")
+	pflag.StringP("format", "f", "", "Output format (tui or json)")
+	pflag.StringP("output", "o", "", "Output file path (for JSON format)")
+	pflag.BoolP("debug", "d", false, "Enable debug mode")
 	pflag.Parse()
 
 	// Bind pflags to viper
@@ -274,6 +279,23 @@ func main() {
 	config, err := loadConfig(configFile)
 	if err != nil {
 		log.Fatalf("Failed to load config: %v", err)
+	}
+
+	// Override config with command line flags (flags take precedence)
+	if viper.IsSet("host") && viper.GetString("host") != "" {
+		config.Meter.Host = viper.GetString("host")
+	}
+	if viper.IsSet("password") && viper.GetString("password") != "" {
+		config.Meter.Password = viper.GetString("password")
+	}
+	if viper.IsSet("format") && viper.GetString("format") != "" {
+		config.Output.Format = viper.GetString("format")
+	}
+	if viper.IsSet("output") && viper.GetString("output") != "" {
+		config.Output.FilePath = viper.GetString("output")
+	}
+	if viper.IsSet("debug") {
+		config.Debug = viper.GetBool("debug")
 	}
 
 	if config.Debug {
