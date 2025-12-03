@@ -3,7 +3,6 @@ package main
 import (
 	"context"
 	"fmt"
-	"log"
 	"net/url"
 	"os"
 	"os/signal"
@@ -17,6 +16,7 @@ import (
 	"github.com/matoubidou/ksem/output/tui"
 	pb "github.com/matoubidou/ksem/proto"
 	"github.com/matoubidou/ksem/types"
+	log "github.com/sirupsen/logrus"
 	"github.com/spf13/pflag"
 	"github.com/spf13/viper"
 	"golang.org/x/oauth2"
@@ -87,7 +87,7 @@ func authenticate(ctx context.Context, config *Config) (*oauth2.Token, error) {
 	}
 
 	if config.Debug {
-		log.Printf("Authentication successful, token type: %s", token.TokenType)
+		log.Debugf("Authentication successful, token type: %s", token.TokenType)
 	}
 
 	return token, nil
@@ -103,7 +103,7 @@ func connectWebSocket(config *Config, token *oauth2.Token) (*websocket.Conn, err
 	}
 
 	if config.Debug {
-		log.Printf("Connecting to WebSocket: %s", wsURL.String())
+		log.Debugf("Connecting to WebSocket: %s", wsURL.String())
 	}
 
 	conn, _, err := websocket.DefaultDialer.Dial(wsURL.String(), nil)
@@ -119,7 +119,7 @@ func connectWebSocket(config *Config, token *oauth2.Token) (*websocket.Conn, err
 	}
 
 	if config.Debug {
-		log.Println("WebSocket connected and authenticated")
+		log.Info("WebSocket connected and authenticated")
 	}
 
 	return conn, nil
@@ -127,7 +127,7 @@ func connectWebSocket(config *Config, token *oauth2.Token) (*websocket.Conn, err
 
 func parseProtobufMessage(data []byte, config *Config) (*types.KSEMData, error) {
 	if config.Debug {
-		log.Printf("Received %d bytes of protobuf data", len(data))
+		log.Debugf("Received %d bytes of protobuf data", len(data))
 	}
 
 	// Parse the GDRs message using generated protobuf code
@@ -165,19 +165,19 @@ func parseProtobufMessage(data []byte, config *Config) (*types.KSEMData, error) 
 	// Debug logging for raw values
 	if config.Debug {
 		if len(allValues) > 0 {
-			log.Printf("Parsed %d OBIS values from protobuf message", len(allValues))
+			log.Debugf("Parsed %d OBIS values from protobuf message", len(allValues))
 			for obisHex, value := range allValues {
 				if code, ok := obis.Lookup(obisHex); ok {
-					log.Printf("  %s = %s", code.Description, code.Format(value))
+					log.Debugf("  %s = %s", code.Description, code.Format(value))
 				} else {
-					log.Printf("  OBIS 0x%X = %d (unknown)", obisHex, value)
+					log.Debugf("  OBIS 0x%X = %d (unknown)", obisHex, value)
 				}
 			}
 		}
 		if len(allFlexValues) > 0 {
-			log.Printf("Parsed %d flex values from protobuf message", len(allFlexValues))
+			log.Debugf("Parsed %d flex values from protobuf message", len(allFlexValues))
 			for key, value := range allFlexValues {
-				log.Printf("  Flex[%s] = %d (%.2f W)", key, value, float64(value)/1000.0)
+				log.Debugf("  Flex[%s] = %d (%.2f W)", key, value, float64(value)/1000.0)
 			}
 		}
 	}
@@ -220,9 +220,9 @@ func runOutputHandler(ctx context.Context, conn *websocket.Conn, config *Config,
 
 	// Start output handler
 	if err := handler.Run(ctx, dataChan, errChan); err != nil {
-		log.Printf("Output handler error: %v", err)
+		log.Errorf("Output handler error: %v", err)
 	}
-	log.Println("Shutting down gracefully...")
+	log.Info("Shutting down gracefully...")
 }
 
 // readWebSocket reads from websocket and sends data to channels
@@ -242,12 +242,12 @@ func readWebSocket(ctx context.Context, conn *websocket.Conn, config *Config, da
 			}
 
 			if config.Debug {
-				log.Printf("Received WebSocket message type: %d, size: %d bytes", msgType, len(message))
+				log.Debugf("Received WebSocket message type: %d, size: %d bytes", msgType, len(message))
 			}
 
 			data, err := parseProtobufMessage(message, config)
 			if err != nil {
-				log.Printf("Error parsing data: %v", err)
+				log.Errorf("Error parsing data: %v", err)
 				continue
 			}
 
@@ -273,6 +273,13 @@ func main() {
 	pflag.IntP("interval", "i", 0, "Output interval in seconds (for JSON format)")
 	pflag.BoolP("debug", "d", false, "Enable debug mode")
 	pflag.Parse()
+
+	// Configure logrus with colors
+	log.SetFormatter(&log.TextFormatter{
+		ForceColors:   true,
+		FullTimestamp: true,
+	})
+	log.SetOutput(os.Stdout)
 
 	// Bind pflags to viper
 	viper.BindPFlags(pflag.CommandLine)
@@ -305,7 +312,10 @@ func main() {
 	}
 
 	if config.Debug {
-		log.Println("Debug mode enabled")
+		log.SetLevel(log.DebugLevel)
+		log.Debug("Debug mode enabled")
+	} else {
+		log.SetLevel(log.InfoLevel)
 	}
 
 	// Create context for graceful shutdown
@@ -318,13 +328,15 @@ func main() {
 
 	go func() {
 		<-sigChan
-		log.Println("Shutdown signal received, stopping...")
+		if config.Output.Format != "tui" {
+			log.Info("Shutdown signal received, stopping...")
+		}
 		cancel()
 	}()
 
 	// Authenticate
 	if config.Output.Format != "tui" {
-		log.Println("Authenticating with KSEM meter...")
+		log.Info("Authenticating with KSEM meter...")
 	}
 	token, err := authenticate(ctx, config)
 	if err != nil {
@@ -333,7 +345,7 @@ func main() {
 
 	// Connect to WebSocket
 	if config.Output.Format != "tui" {
-		log.Println("Connecting to WebSocket...")
+		log.Info("Connecting to WebSocket...")
 	}
 	conn, err := connectWebSocket(config, token)
 	if err != nil {
@@ -348,7 +360,7 @@ func main() {
 		handler = tui.NewHandler()
 
 	case "json":
-		log.Println("Starting JSON output mode...")
+		log.Info("Starting JSON output mode...")
 		handler = outputjson.NewHandler(config.Output.FilePath, config.Output.IntervalSeconds)
 
 	default:

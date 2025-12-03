@@ -4,11 +4,11 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"log"
 	"os"
 	"time"
 
 	"github.com/matoubidou/ksem/types"
+	log "github.com/sirupsen/logrus"
 )
 
 // Handler implements the output.Handler interface for JSON output
@@ -44,7 +44,7 @@ func (h *Handler) Run(ctx context.Context, dataChan <-chan *types.KSEMData, errC
 			// Output the last received data on ticker
 			if lastData != nil {
 				if err := h.outputJSON(lastData); err != nil {
-					log.Printf("Error outputting JSON: %v", err)
+					log.Errorf("Error outputting JSON: %v", err)
 				}
 			}
 		}
