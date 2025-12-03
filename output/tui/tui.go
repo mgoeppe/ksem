@@ -169,69 +169,89 @@ func (m model) View() string {
 }
 
 func renderPowerFlow(data *types.KSEMData) string {
-	var b strings.Builder
+	var rows []string
 
-	// Visual flow diagram section header
-	b.WriteString(lipgloss.NewStyle().
+	// Section header
+	header := lipgloss.NewStyle().
 		Foreground(lipgloss.Color("246")).
 		Bold(true).
-		Render("⚡ Power Flow"))
-	b.WriteString("\n\n")
+		Render("⚡ Power Flow")
 
-	// Calculate battery SOC string for consistent width
-	socStr := ""
-	if data.BatterySOC > 0 {
-		socStr = fmt.Sprintf("  [%.0f%%]", data.BatterySOC)
+	rows = append(rows, header)
+	rows = append(rows, "") // blank line
+
+	// Create fixed-width columns for alignment
+	col1Width := 15 // emoji + label (increased for wider emojis)
+	col2Width := 12 // value
+	col3Width := 17 // extra text
+
+	createRow := func(emoji, label, valueStr, extraStr string) string {
+		// Column 1: emoji + label (use plain string formatting, not lipgloss Width)
+		labelText := fmt.Sprintf("%s %-10s", emoji, label)
+		col1 := lipgloss.NewStyle().
+			Width(col1Width).
+			Render(labelStyle.Render(labelText))
+
+		// Column 2: value (right-aligned)
+		col2 := lipgloss.NewStyle().
+			Width(col2Width).
+			Align(lipgloss.Right).
+			Render(valueStr)
+
+		// Column 3: extra text
+		col3 := lipgloss.NewStyle().
+			Width(col3Width).
+			Render(extraStr)
+
+		return lipgloss.JoinHorizontal(lipgloss.Left, col1, col2, col3)
 	}
 
 	// Solar Production
-	b.WriteString(labelStyle.Render("☀️  Solar:    "))
-	b.WriteString(solarStyle.Render(fmt.Sprintf("%7.1f W", data.PowerSolar)))
-	b.WriteString(strings.Repeat(" ", 15+len(socStr)))
-	b.WriteString("\n")
+	solarValue := solarStyle.Render(fmt.Sprintf("%.1f W", data.PowerSolar))
+	rows = append(rows, createRow("💡", "Solar:", solarValue, ""))
 
 	// Battery
-	b.WriteString(labelStyle.Render("🔋 Battery:   "))
+	var batteryValue, batteryExtra string
 	if data.PowerBattery > 0 {
-		b.WriteString(batteryChargingStyle.Render(fmt.Sprintf("%7.1f W ⬆ charging", data.PowerBattery)))
+		batteryValue = batteryChargingStyle.Render(fmt.Sprintf("%.1f W", data.PowerBattery))
+		batteryExtra = batteryChargingStyle.Render("⬆ charging")
 	} else if data.PowerBattery < 0 {
-		b.WriteString(batteryDischargingStyle.Render(fmt.Sprintf("%7.1f W ⬇ discharging", data.PowerBattery)))
+		batteryValue = batteryDischargingStyle.Render(fmt.Sprintf("%.1f W", data.PowerBattery))
+		batteryExtra = batteryDischargingStyle.Render("⬇ discharging")
 	} else {
-		b.WriteString(valueStyle.Render(fmt.Sprintf("%7.1f W (idle)", data.PowerBattery)))
+		batteryValue = valueStyle.Render(fmt.Sprintf("%.1f W", data.PowerBattery))
+		batteryExtra = valueStyle.Render("(idle)")
 	}
-	if socStr != "" {
-		b.WriteString(lipgloss.NewStyle().Foreground(lipgloss.Color("240")).Render(socStr))
+	if data.BatterySOC > 0 {
+		batteryExtra += lipgloss.NewStyle().Foreground(lipgloss.Color("240")).Render(fmt.Sprintf(" [%.0f%%]", data.BatterySOC))
 	}
-	b.WriteString("\n")
+	rows = append(rows, createRow("🔋", "Battery:", batteryValue, batteryExtra))
 
 	// Grid
-	b.WriteString(labelStyle.Render("🔌 Grid:      "))
+	var gridValue, gridExtra string
 	if data.PowerGrid > 0 {
-		b.WriteString(gridImportStyle.Render(fmt.Sprintf("%7.1f W ⬇ importing", data.PowerGrid)))
+		gridValue = gridImportStyle.Render(fmt.Sprintf("%.1f W", data.PowerGrid))
+		gridExtra = gridImportStyle.Render("⬇ importing")
 	} else if data.PowerGrid < 0 {
-		b.WriteString(gridExportStyle.Render(fmt.Sprintf("%7.1f W ⬆ exporting", data.PowerGrid)))
+		gridValue = gridExportStyle.Render(fmt.Sprintf("%.1f W", data.PowerGrid))
+		gridExtra = gridExportStyle.Render("⬆ exporting")
 	} else {
-		b.WriteString(valueStyle.Render(fmt.Sprintf("%7.1f W", data.PowerGrid)))
-		b.WriteString(strings.Repeat(" ", 13))
+		gridValue = valueStyle.Render(fmt.Sprintf("%.1f W", data.PowerGrid))
+		gridExtra = ""
 	}
-	b.WriteString(strings.Repeat(" ", len(socStr)))
-	b.WriteString("\n")
+	rows = append(rows, createRow("🔌", "Grid:", gridValue, gridExtra))
 
 	// Home Consumption
-	b.WriteString(labelStyle.Render("🏠 Home:      "))
-	b.WriteString(homeStyle.Render(fmt.Sprintf("%7.1f W", data.PowerHome)))
-	b.WriteString(strings.Repeat(" ", 15+len(socStr)))
-	b.WriteString("\n")
+	homeValue := homeStyle.Render(fmt.Sprintf("%.1f W", data.PowerHome))
+	rows = append(rows, createRow("🏠", "Home:", homeValue, ""))
 
 	// Wallbox (only if active)
 	if data.PowerWallbox > 0 {
-		b.WriteString(labelStyle.Render("🚗 Wallbox:   "))
-		b.WriteString(valueStyle.Render(fmt.Sprintf("%7.1f W", data.PowerWallbox)))
-		b.WriteString(strings.Repeat(" ", 15+len(socStr)))
-		b.WriteString("\n")
+		wallboxValue := valueStyle.Render(fmt.Sprintf("%.1f W", data.PowerWallbox))
+		rows = append(rows, createRow("🚗", "Wallbox:", wallboxValue, ""))
 	}
 
-	return b.String()
+	return strings.Join(rows, "\n")
 }
 
 func renderDetailedValues(data *types.KSEMData) string {
