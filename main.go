@@ -13,6 +13,7 @@ import (
 	"github.com/matoubidou/ksem/obis"
 	"github.com/matoubidou/ksem/output"
 	outputjson "github.com/matoubidou/ksem/output/json"
+	"github.com/matoubidou/ksem/output/sqlite"
 	"github.com/matoubidou/ksem/output/tui"
 	pb "github.com/matoubidou/ksem/proto"
 	"github.com/matoubidou/ksem/types"
@@ -268,9 +269,9 @@ func main() {
 	pflag.StringP("config", "c", "config.yaml", "Path to configuration file")
 	pflag.String("host", "", "KSEM meter hostname or IP address")
 	pflag.String("password", "", "KSEM meter admin password")
-	pflag.StringP("format", "f", "", "Output format (tui or json)")
-	pflag.StringP("output", "o", "", "Output file path (for JSON format)")
-	pflag.StringP("interval", "i", "", "Output interval as Go duration (e.g., 1s, 5m, 1h) for JSON format")
+	pflag.StringP("format", "f", "", "Output format (tui, json, or sqlite)")
+	pflag.StringP("output", "o", "", "Output file path (for JSON and SQLite formats)")
+	pflag.StringP("interval", "i", "", "Output interval as Go duration (e.g., 1s, 5m, 1h) for JSON and SQLite formats")
 	pflag.BoolP("debug", "d", false, "Enable debug mode")
 	pflag.Parse()
 
@@ -363,8 +364,15 @@ func main() {
 		log.Info("Starting JSON output mode...")
 		handler = outputjson.NewHandler(config.Output.FilePath, config.Output.Interval)
 
+	case "sqlite":
+		if config.Output.FilePath == "" {
+			log.Fatal("SQLite output requires --output or file_path in config")
+		}
+		log.Infof("Starting SQLite output mode (database: %s)...", config.Output.FilePath)
+		handler = sqlite.NewHandler(config.Output.FilePath, config.Output.Interval)
+
 	default:
-		log.Fatalf("Unknown output format: %s (supported: tui, json)", config.Output.Format)
+		log.Fatalf("Unknown output format: %s (supported: tui, json, sqlite)", config.Output.Format)
 	}
 
 	// Run the output handler

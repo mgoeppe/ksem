@@ -9,15 +9,16 @@ meter:
   password: "your-password-here"
 
 output:
-  # Output format: "tui" (terminal UI) or "json"
+  # Output format: "tui" (terminal UI), "json", or "sqlite"
   format: tui
 
   # For JSON output: optional file path (leave empty for stdout)
+  # For SQLite output: required database file path (e.g., "ksem.db")
   file_path: ""
 
-  # Output interval as Go duration (for JSON format)
+  # Output interval as Go duration (for JSON and SQLite formats)
   # Examples: 1s (1 second), 5s, 30s, 1m (1 minute), 5m, 1h (1 hour)
-  # Controls how often JSON data is printed
+  # Controls how often data is written
   interval: "1s"
 
 # Enable debug logging (shows protobuf messages, auth details, etc.)
