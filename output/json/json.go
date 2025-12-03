@@ -6,24 +6,31 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"time"
 
 	"github.com/matoubidou/ksem/types"
 )
 
 // Handler implements the output.Handler interface for JSON output
 type Handler struct {
-	FilePath string
+	FilePath        string
+	IntervalSeconds int
 }
 
 // NewHandler creates a new JSON output handler
-func NewHandler(filePath string) *Handler {
+func NewHandler(filePath string, intervalSeconds int) *Handler {
 	return &Handler{
-		FilePath: filePath,
+		FilePath:        filePath,
+		IntervalSeconds: intervalSeconds,
 	}
 }
 
 // Run starts the JSON output mode
 func (h *Handler) Run(ctx context.Context, dataChan <-chan *types.KSEMData, errChan <-chan error) error {
+	var lastData *types.KSEMData
+	ticker := time.NewTicker(time.Duration(h.IntervalSeconds) * time.Second)
+	defer ticker.Stop()
+
 	for {
 		select {
 		case <-ctx.Done():
@@ -31,8 +38,14 @@ func (h *Handler) Run(ctx context.Context, dataChan <-chan *types.KSEMData, errC
 		case err := <-errChan:
 			return err
 		case data := <-dataChan:
-			if err := h.outputJSON(data); err != nil {
-				log.Printf("Error outputting JSON: %v", err)
+			// Buffer the latest data
+			lastData = data
+		case <-ticker.C:
+			// Output the last received data on ticker
+			if lastData != nil {
+				if err := h.outputJSON(lastData); err != nil {
+					log.Printf("Error outputting JSON: %v", err)
+				}
 			}
 		}
 	}

@@ -15,5 +15,9 @@ output:
   # For JSON output: optional file path (leave empty for stdout)
   file_path: ""
 
+  # Output interval in seconds (for JSON format)
+  # Controls how often JSON data is printed
+  interval_seconds: 1
+
 # Enable debug logging (shows protobuf messages, auth details, etc.)
 debug: false

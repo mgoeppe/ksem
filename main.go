@@ -30,8 +30,9 @@ type Config struct {
 		Password string `mapstructure:"password"`
 	} `mapstructure:"meter"`
 	Output struct {
-		Format   string `mapstructure:"format"`
-		FilePath string `mapstructure:"file_path"`
+		Format          string `mapstructure:"format"`
+		FilePath        string `mapstructure:"file_path"`
+		IntervalSeconds int    `mapstructure:"interval_seconds"`
 	} `mapstructure:"output"`
 	Debug bool `mapstructure:"debug"`
 }
@@ -47,6 +48,7 @@ func loadConfig(filename string) (*Config, error) {
 
 	// Set defaults
 	viper.SetDefault("output.format", "tui")
+	viper.SetDefault("output.interval_seconds", 1)
 	viper.SetDefault("debug", false)
 
 	if err := viper.ReadInConfig(); err != nil {
@@ -268,6 +270,7 @@ func main() {
 	pflag.String("password", "", "KSEM meter admin password")
 	pflag.StringP("format", "f", "", "Output format (tui or json)")
 	pflag.StringP("output", "o", "", "Output file path (for JSON format)")
+	pflag.IntP("interval", "i", 0, "Output interval in seconds (for JSON format)")
 	pflag.BoolP("debug", "d", false, "Enable debug mode")
 	pflag.Parse()
 
@@ -293,6 +296,9 @@ func main() {
 	}
 	if viper.IsSet("output") && viper.GetString("output") != "" {
 		config.Output.FilePath = viper.GetString("output")
+	}
+	if viper.IsSet("interval") && viper.GetInt("interval") > 0 {
+		config.Output.IntervalSeconds = viper.GetInt("interval")
 	}
 	if viper.IsSet("debug") {
 		config.Debug = viper.GetBool("debug")
@@ -343,7 +349,7 @@ func main() {
 
 	case "json":
 		log.Println("Starting JSON output mode...")
-		handler = outputjson.NewHandler(config.Output.FilePath)
+		handler = outputjson.NewHandler(config.Output.FilePath, config.Output.IntervalSeconds)
 
 	default:
 		log.Fatalf("Unknown output format: %s (supported: tui, json)", config.Output.Format)
