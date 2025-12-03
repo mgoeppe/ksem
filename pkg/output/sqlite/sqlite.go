@@ -6,8 +6,8 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/matoubidou/ksem/pkg/types"
 	_ "github.com/mattn/go-sqlite3"
-	"github.com/matoubidou/ksem/types"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -128,7 +128,6 @@ func (h *Handler) insertData(data *types.KSEMData) error {
 		data.ActivePowerL2,
 		data.ActivePowerL3,
 	)
-
 	if err != nil {
 		return err
 	}

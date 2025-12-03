@@ -3,7 +3,7 @@ package output
 import (
 	"context"
 
-	"github.com/matoubidou/ksem/types"
+	"github.com/matoubidou/ksem/pkg/types"
 )
 
 // Handler is the interface for all output modes
