@@ -16,7 +16,7 @@
    output:
      format: sqlite
      file_path: "/app/data/ksem.db"
-     interval: "5s"
+     interval: "1m"
    ```
 
 3. **Create data directory:**
@@ -107,7 +107,7 @@ meter:
 output:
   format: sqlite
   file_path: "/app/data/ksem.db"
-  interval: "5s"
+  interval: "1m"
 
 debug: false
 ```

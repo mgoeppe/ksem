@@ -54,7 +54,7 @@ output:
   format: "tui"           # "tui" (terminal UI), "json", or "sqlite"
   file_path: ""           # For JSON: optional file path (empty = stdout)
                           # For SQLite: required database path (e.g., "ksem.db")
-  interval: "1s"          # Output interval for JSON/SQLite (e.g., "1s", "5s", "1m")
+  interval: "1m"          # Output interval for JSON/SQLite (e.g., "1s", "5s", "1m")
 
 debug: false              # Enable debug logging
 ```

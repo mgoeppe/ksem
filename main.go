@@ -49,7 +49,7 @@ func loadConfig(filename string) (*Config, error) {
 
 	// Set defaults
 	viper.SetDefault("output.format", "tui")
-	viper.SetDefault("output.interval", "1s")
+	viper.SetDefault("output.interval", "1m")
 	viper.SetDefault("debug", false)
 
 	if err := viper.ReadInConfig(); err != nil {

@@ -19,7 +19,7 @@ output:
   # Output interval as Go duration (for JSON and SQLite formats)
   # Examples: 1s (1 second), 5s, 30s, 1m (1 minute), 5m, 1h (1 hour)
   # Controls how often data is written
-  interval: "1s"
+  interval: "1m"
 
 # Enable debug logging (shows protobuf messages, auth details, etc.)
 debug: false
