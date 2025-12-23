@@ -16,8 +16,33 @@ A Go tool for scraping real-time energy data from Kostal KSEM (Kostal Smart Ener
 - ✅ **Battery State of Charge** - Real-time SOC percentage
 - ✅ **OBIS Code Support** - Standardized energy measurement codes
 - ✅ **Docker Support** - Easy containerized deployment
+- ✅ **Makefile Automation** - Comprehensive build and deployment targets
 
 ## Quick Start
+
+### Using Makefile (Recommended)
+
+```bash
+# Clone the repository
+git clone https://github.com/matoubidou/ksem.git
+cd ksem
+
+# Initial setup (creates config.yaml and downloads dependencies)
+make setup
+# Edit config.yaml with your KSEM host and password
+
+# Build and run
+make build
+make run
+
+# Or use Docker
+make docker
+
+# See all available targets
+make
+```
+
+### Manual Build
 
 ```bash
 # Clone and build
@@ -184,6 +209,7 @@ Values are in milli-units (mW, mWh, mHz) and automatically converted to standard
 ```
 ksem/
 ├── main.go              # Main application
+├── Makefile             # Build automation and task runner
 ├── pkg/
 │   ├── proto/
 │   │   ├── ksem.proto   # Protocol Buffer schema
@@ -210,7 +236,21 @@ ksem/
 
 See [DOCKER.md](DOCKER.md) for detailed Docker deployment instructions.
 
-Quick start:
+### Using Makefile
+
+```bash
+# Build and run in one command
+make docker
+
+# Or step by step
+make docker-build      # Build the Docker image
+make docker-run        # Run the container
+make docker-logs       # View container logs
+make docker-stop       # Stop and remove container
+```
+
+### Manual Docker Commands
+
 ```bash
 # Build the image
 docker build -t ksem:latest .
@@ -228,8 +268,30 @@ docker run -d \
 
 ## Development
 
+### Makefile Targets
+
+Run `make` or `make help` to see all available targets:
+
+```bash
+make                # Show help with all targets
+make build          # Build the binary
+make run            # Run in TUI mode
+make dev            # Run with debug enabled
+make test           # Run tests
+make test-coverage  # Run tests with coverage
+make fmt            # Format code
+make vet            # Run go vet
+make proto          # Regenerate Protocol Buffer code
+make clean          # Remove build artifacts
+```
+
 ### Regenerate Protocol Buffer Code
 
+```bash
+make proto
+```
+
+Or using go generate:
 ```bash
 go generate ./pkg/proto
 ```
