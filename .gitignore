@@ -18,11 +18,15 @@ output.json
 # Keep only *.example files in git
 config.yaml
 config*.yaml
+.envrc
+
+# VS Code MCP configuration (contains tokens)
+.vscode/mcp.json
 !config*.example
 
 # IDE
 .idea/
-.vscode/
+.vscode/mcp.json
 *.swp
 *.swo
 *~
