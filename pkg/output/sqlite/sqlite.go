@@ -31,7 +31,7 @@ func (h *Handler) Run(ctx context.Context, dataChan <-chan *types.KSEMData, errC
 	var lastData *types.KSEMData
 
 	// Open database connection
-	db, err := sql.Open("sqlite3", h.FilePath)
+	db, err := sql.Open("sqlite", h.FilePath)
 	if err != nil {
 		return fmt.Errorf("failed to open database: %w", err)
 	}

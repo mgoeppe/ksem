@@ -282,34 +282,34 @@ func main() {
 	})
 	log.SetOutput(os.Stdout)
 
-	// Bind pflags to viper
-	viper.BindPFlags(pflag.CommandLine)
-
+	// Get config file path from flags (don't bind other flags to viper to avoid conflicts)
+	configFile, _ := pflag.CommandLine.GetString("config")
+	
 	// Load configuration
-	configFile := viper.GetString("config")
 	config, err := loadConfig(configFile)
 	if err != nil {
 		log.Fatalf("Failed to load config: %v", err)
 	}
 
 	// Override config with command line flags (flags take precedence)
-	if viper.IsSet("host") && viper.GetString("host") != "" {
-		config.Meter.Host = viper.GetString("host")
+	// Use pflag directly instead of viper to avoid conflicts with config structure
+	if pflag.CommandLine.Changed("host") {
+		config.Meter.Host, _ = pflag.CommandLine.GetString("host")
 	}
-	if viper.IsSet("password") && viper.GetString("password") != "" {
-		config.Meter.Password = viper.GetString("password")
+	if pflag.CommandLine.Changed("password") {
+		config.Meter.Password, _ = pflag.CommandLine.GetString("password")
 	}
-	if viper.IsSet("format") && viper.GetString("format") != "" {
-		config.Output.Format = viper.GetString("format")
+	if pflag.CommandLine.Changed("format") {
+		config.Output.Format, _ = pflag.CommandLine.GetString("format")
 	}
-	if viper.IsSet("output") && viper.GetString("output") != "" {
-		config.Output.FilePath = viper.GetString("output")
+	if pflag.CommandLine.Changed("output") {
+		config.Output.FilePath, _ = pflag.CommandLine.GetString("output")
 	}
-	if viper.IsSet("interval") && viper.GetString("interval") != "" {
-		config.Output.Interval = viper.GetString("interval")
+	if pflag.CommandLine.Changed("interval") {
+		config.Output.Interval, _ = pflag.CommandLine.GetString("interval")
 	}
-	if viper.IsSet("debug") {
-		config.Debug = viper.GetBool("debug")
+	if pflag.CommandLine.Changed("debug") {
+		config.Debug, _ = pflag.CommandLine.GetBool("debug")
 	}
 
 	if config.Debug {
