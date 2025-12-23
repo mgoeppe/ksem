@@ -34,7 +34,6 @@ RUN mkdir -p /app/config /app/data
 
 # Set default environment variables
 ENV CONFIG_PATH=/app/config/config.yaml
-ENV SQLITE_PATH=/app/data/ksem.db
 
-# Run the application
-CMD ["sh", "-c", "./ksem -c ${CONFIG_PATH} -f sqlite -o ${SQLITE_PATH}"]
+# Run the application (config file controls all settings)
+CMD ["sh", "-c", "./ksem -c ${CONFIG_PATH}"]

@@ -7,8 +7,8 @@ import (
 	"time"
 
 	"github.com/matoubidou/ksem/pkg/types"
-	_ "github.com/mattn/go-sqlite3"
 	log "github.com/sirupsen/logrus"
+	_ "modernc.org/sqlite"
 )
 
 // Handler implements the output.Handler interface for SQLite output
