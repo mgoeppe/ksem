@@ -213,7 +213,7 @@
             "mode": "absolute",
             "steps": [
               {
-                "color": "green",
+                "color": "yellow",
                 "value": 0
               }
             ]
