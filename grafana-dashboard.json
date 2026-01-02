@@ -418,7 +418,7 @@
             "mode": "absolute",
             "steps": [
               {
-                "color": "green",
+                "color": "orange",
                 "value": 0
               }
             ]
@@ -699,7 +699,7 @@
             "mode": "absolute",
             "steps": [
               {
-                "color": "green",
+                "color": "yellow",
                 "value": 0
               }
             ]
@@ -806,9 +806,9 @@
             "type": "frser-sqlite-datasource",
             "uid": "cf7zteddssyyoc"
           },
-          "queryText": "SELECT SUM(energy) as value FROM (SELECT CASE WHEN power_grid < 0 THEN power_grid * COALESCE((julianday(substr(timestamp, 1, 19)) - julianday(LAG(substr(timestamp, 1, 19)) OVER (ORDER BY timestamp))) * 24, 0) ELSE 0 END as energy FROM ksem_data WHERE unixepoch(substr(timestamp, 1, 19)) >= $__from / 1000 AND unixepoch(substr(timestamp, 1, 19)) <= $__to / 1000)",
+          "queryText": "SELECT SUM(energy) as value FROM (SELECT CASE WHEN power_grid < 0 THEN -power_grid * COALESCE((julianday(substr(timestamp, 1, 19)) - julianday(LAG(substr(timestamp, 1, 19)) OVER (ORDER BY timestamp))) * 24, 0) ELSE 0 END as energy FROM ksem_data WHERE unixepoch(substr(timestamp, 1, 19)) >= $__from / 1000 AND unixepoch(substr(timestamp, 1, 19)) <= $__to / 1000)",
           "queryType": "table",
-          "rawQueryText": "SELECT SUM(energy) as value FROM (SELECT CASE WHEN power_grid < 0 THEN power_grid * COALESCE((julianday(substr(timestamp, 1, 19)) - julianday(LAG(substr(timestamp, 1, 19)) OVER (ORDER BY timestamp))) * 24, 0) ELSE 0 END as energy FROM ksem_data WHERE unixepoch(substr(timestamp, 1, 19)) >= $__from / 1000 AND unixepoch(substr(timestamp, 1, 19)) <= $__to / 1000)",
+          "rawQueryText": "SELECT SUM(energy) as value FROM (SELECT CASE WHEN power_grid < 0 THEN -power_grid * COALESCE((julianday(substr(timestamp, 1, 19)) - julianday(LAG(substr(timestamp, 1, 19)) OVER (ORDER BY timestamp))) * 24, 0) ELSE 0 END as energy FROM ksem_data WHERE unixepoch(substr(timestamp, 1, 19)) >= $__from / 1000 AND unixepoch(substr(timestamp, 1, 19)) <= $__to / 1000)",
           "refId": "A",
           "timeColumns": [
             "timestamp"
@@ -900,7 +900,7 @@
             "mode": "absolute",
             "steps": [
               {
-                "color": "green",
+                "color": "orange",
                 "value": 0
               }
             ]
