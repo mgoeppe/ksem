@@ -138,16 +138,12 @@
             "mode": "absolute",
             "steps": [
               {
-                "color": "green",
-                "value": 0
-              },
-              {
                 "color": "red",
                 "value": 0
               },
               {
                 "color": "green",
-                "value": 0.1
+                "value": 0
               }
             ]
           },
@@ -351,7 +347,7 @@
             "mode": "absolute",
             "steps": [
               {
-                "color": "green",
+                "color": "purple",
                 "value": 0
               }
             ]
@@ -498,7 +494,7 @@
             "mode": "absolute",
             "steps": [
               {
-                "color": "green",
+                "color": "super-light-green",
                 "value": 0
               }
             ]
@@ -538,7 +534,7 @@
             "type": "frser-sqlite-datasource",
             "uid": "cf7zteddssyyoc"
           },
-          "queryText": "SELECT SUM(energy) as value FROM (SELECT CASE WHEN power_battery > 0 THEN power_battery * COALESCE((julianday(substr(timestamp, 1, 19)) - julianday(LAG(substr(timestamp, 1, 19)) OVER (ORDER BY timestamp))) * 24, 0) ELSE 0 END as energy FROM ksem_data WHERE unixepoch(substr(timestamp, 1, 19)) >= $__from / 1000 AND unixepoch(substr(timestamp, 1, 19)) <= $__to / 1000)",
+          "queryText": "SELECT SUM(energy) as value FROM (SELECT CASE WHEN power_battery > 0 THEN power_battery * COALESCE((julianday(substr(timestamp, 1, 19)) - julianday(LAG(substr(timestamp, 1, 19)) OVER (ORDER BY timestamp))) * 24, 0) ELSE 0 END as energy FROM ksem_data WHERE unixepoch(substr(timestamp, 1, 19)) >= 1766831525857 / 1000 AND unixepoch(substr(timestamp, 1, 19)) <= 1767436325857 / 1000)",
           "queryType": "table",
           "rawQueryText": "SELECT SUM(energy) as value FROM (SELECT CASE WHEN power_battery > 0 THEN power_battery * COALESCE((julianday(substr(timestamp, 1, 19)) - julianday(LAG(substr(timestamp, 1, 19)) OVER (ORDER BY timestamp))) * 24, 0) ELSE 0 END as energy FROM ksem_data WHERE unixepoch(substr(timestamp, 1, 19)) >= $__from / 1000 AND unixepoch(substr(timestamp, 1, 19)) <= $__to / 1000)",
           "refId": "A",
@@ -565,7 +561,7 @@
             "mode": "absolute",
             "steps": [
               {
-                "color": "red",
+                "color": "super-light-red",
                 "value": 0
               }
             ]
@@ -605,7 +601,7 @@
             "type": "frser-sqlite-datasource",
             "uid": "cf7zteddssyyoc"
           },
-          "queryText": "SELECT SUM(energy) as value FROM (SELECT CASE WHEN power_battery < 0 THEN power_battery * COALESCE((julianday(substr(timestamp, 1, 19)) - julianday(LAG(substr(timestamp, 1, 19)) OVER (ORDER BY timestamp))) * 24, 0) ELSE 0 END as energy FROM ksem_data WHERE unixepoch(substr(timestamp, 1, 19)) >= $__from / 1000 AND unixepoch(substr(timestamp, 1, 19)) <= $__to / 1000)",
+          "queryText": "SELECT SUM(energy) as value FROM (SELECT CASE WHEN power_battery < 0 THEN power_battery * COALESCE((julianday(substr(timestamp, 1, 19)) - julianday(LAG(substr(timestamp, 1, 19)) OVER (ORDER BY timestamp))) * 24, 0) ELSE 0 END as energy FROM ksem_data WHERE unixepoch(substr(timestamp, 1, 19)) >= 1766831525857 / 1000 AND unixepoch(substr(timestamp, 1, 19)) <= 1767436325857 / 1000)",
           "queryType": "table",
           "rawQueryText": "SELECT SUM(energy) as value FROM (SELECT CASE WHEN power_battery < 0 THEN power_battery * COALESCE((julianday(substr(timestamp, 1, 19)) - julianday(LAG(substr(timestamp, 1, 19)) OVER (ORDER BY timestamp))) * 24, 0) ELSE 0 END as energy FROM ksem_data WHERE unixepoch(substr(timestamp, 1, 19)) >= $__from / 1000 AND unixepoch(substr(timestamp, 1, 19)) <= $__to / 1000)",
           "refId": "A",
@@ -632,7 +628,7 @@
             "mode": "absolute",
             "steps": [
               {
-                "color": "green",
+                "color": "yellow",
                 "value": 0
               }
             ]
@@ -672,7 +668,7 @@
             "type": "frser-sqlite-datasource",
             "uid": "cf7zteddssyyoc"
           },
-          "queryText": "SELECT SUM(energy) as value FROM (SELECT power_solar * COALESCE((julianday(substr(timestamp, 1, 19)) - julianday(LAG(substr(timestamp, 1, 19)) OVER (ORDER BY timestamp))) * 24, 0) as energy FROM ksem_data WHERE unixepoch(substr(timestamp, 1, 19)) >= $__from / 1000 AND unixepoch(substr(timestamp, 1, 19)) <= $__to / 1000)",
+          "queryText": "SELECT SUM(energy) as value FROM (SELECT power_solar * COALESCE((julianday(substr(timestamp, 1, 19)) - julianday(LAG(substr(timestamp, 1, 19)) OVER (ORDER BY timestamp))) * 24, 0) as energy FROM ksem_data WHERE unixepoch(substr(timestamp, 1, 19)) >= 1766831525857 / 1000 AND unixepoch(substr(timestamp, 1, 19)) <= 1767436325857 / 1000)",
           "queryType": "table",
           "rawQueryText": "SELECT SUM(energy) as value FROM (SELECT power_solar * COALESCE((julianday(substr(timestamp, 1, 19)) - julianday(LAG(substr(timestamp, 1, 19)) OVER (ORDER BY timestamp))) * 24, 0) as energy FROM ksem_data WHERE unixepoch(substr(timestamp, 1, 19)) >= $__from / 1000 AND unixepoch(substr(timestamp, 1, 19)) <= $__to / 1000)",
           "refId": "A",
@@ -699,7 +695,7 @@
             "mode": "absolute",
             "steps": [
               {
-                "color": "yellow",
+                "color": "red",
                 "value": 0
               }
             ]
@@ -739,7 +735,7 @@
             "type": "frser-sqlite-datasource",
             "uid": "cf7zteddssyyoc"
           },
-          "queryText": "SELECT SUM(energy) as value FROM (SELECT CASE WHEN power_grid > 0 THEN power_grid * COALESCE((julianday(substr(timestamp, 1, 19)) - julianday(LAG(substr(timestamp, 1, 19)) OVER (ORDER BY timestamp))) * 24, 0) ELSE 0 END as energy FROM ksem_data WHERE unixepoch(substr(timestamp, 1, 19)) >= $__from / 1000 AND unixepoch(substr(timestamp, 1, 19)) <= $__to / 1000)",
+          "queryText": "SELECT SUM(energy) as value FROM (SELECT CASE WHEN power_grid > 0 THEN power_grid * COALESCE((julianday(substr(timestamp, 1, 19)) - julianday(LAG(substr(timestamp, 1, 19)) OVER (ORDER BY timestamp))) * 24, 0) ELSE 0 END as energy FROM ksem_data WHERE unixepoch(substr(timestamp, 1, 19)) >= 1766831525857 / 1000 AND unixepoch(substr(timestamp, 1, 19)) <= 1767436325857 / 1000)",
           "queryType": "table",
           "rawQueryText": "SELECT SUM(energy) as value FROM (SELECT CASE WHEN power_grid > 0 THEN power_grid * COALESCE((julianday(substr(timestamp, 1, 19)) - julianday(LAG(substr(timestamp, 1, 19)) OVER (ORDER BY timestamp))) * 24, 0) ELSE 0 END as energy FROM ksem_data WHERE unixepoch(substr(timestamp, 1, 19)) >= $__from / 1000 AND unixepoch(substr(timestamp, 1, 19)) <= $__to / 1000)",
           "refId": "A",
@@ -766,7 +762,7 @@
             "mode": "absolute",
             "steps": [
               {
-                "color": "red",
+                "color": "green",
                 "value": 0
               }
             ]
@@ -806,7 +802,7 @@
             "type": "frser-sqlite-datasource",
             "uid": "cf7zteddssyyoc"
           },
-          "queryText": "SELECT SUM(energy) as value FROM (SELECT CASE WHEN power_grid < 0 THEN -power_grid * COALESCE((julianday(substr(timestamp, 1, 19)) - julianday(LAG(substr(timestamp, 1, 19)) OVER (ORDER BY timestamp))) * 24, 0) ELSE 0 END as energy FROM ksem_data WHERE unixepoch(substr(timestamp, 1, 19)) >= $__from / 1000 AND unixepoch(substr(timestamp, 1, 19)) <= $__to / 1000)",
+          "queryText": "SELECT SUM(energy) as value FROM (SELECT CASE WHEN power_grid < 0 THEN -power_grid * COALESCE((julianday(substr(timestamp, 1, 19)) - julianday(LAG(substr(timestamp, 1, 19)) OVER (ORDER BY timestamp))) * 24, 0) ELSE 0 END as energy FROM ksem_data WHERE unixepoch(substr(timestamp, 1, 19)) >= 1766831525857 / 1000 AND unixepoch(substr(timestamp, 1, 19)) <= 1767436325857 / 1000)",
           "queryType": "table",
           "rawQueryText": "SELECT SUM(energy) as value FROM (SELECT CASE WHEN power_grid < 0 THEN -power_grid * COALESCE((julianday(substr(timestamp, 1, 19)) - julianday(LAG(substr(timestamp, 1, 19)) OVER (ORDER BY timestamp))) * 24, 0) ELSE 0 END as energy FROM ksem_data WHERE unixepoch(substr(timestamp, 1, 19)) >= $__from / 1000 AND unixepoch(substr(timestamp, 1, 19)) <= $__to / 1000)",
           "refId": "A",
@@ -833,7 +829,7 @@
             "mode": "absolute",
             "steps": [
               {
-                "color": "green",
+                "color": "purple",
                 "value": 0
               }
             ]
@@ -873,7 +869,7 @@
             "type": "frser-sqlite-datasource",
             "uid": "cf7zteddssyyoc"
           },
-          "queryText": "SELECT SUM(energy) as value FROM (SELECT power_home * COALESCE((julianday(substr(timestamp, 1, 19)) - julianday(LAG(substr(timestamp, 1, 19)) OVER (ORDER BY timestamp))) * 24, 0) as energy FROM ksem_data WHERE unixepoch(substr(timestamp, 1, 19)) >= $__from / 1000 AND unixepoch(substr(timestamp, 1, 19)) <= $__to / 1000)",
+          "queryText": "SELECT SUM(energy) as value FROM (SELECT power_home * COALESCE((julianday(substr(timestamp, 1, 19)) - julianday(LAG(substr(timestamp, 1, 19)) OVER (ORDER BY timestamp))) * 24, 0) as energy FROM ksem_data WHERE unixepoch(substr(timestamp, 1, 19)) >= 1766831525857 / 1000 AND unixepoch(substr(timestamp, 1, 19)) <= 1767436325857 / 1000)",
           "queryType": "table",
           "rawQueryText": "SELECT SUM(energy) as value FROM (SELECT power_home * COALESCE((julianday(substr(timestamp, 1, 19)) - julianday(LAG(substr(timestamp, 1, 19)) OVER (ORDER BY timestamp))) * 24, 0) as energy FROM ksem_data WHERE unixepoch(substr(timestamp, 1, 19)) >= $__from / 1000 AND unixepoch(substr(timestamp, 1, 19)) <= $__to / 1000)",
           "refId": "A",
@@ -1171,7 +1167,7 @@
     }
   ],
   "preload": false,
-  "refresh": "5s",
+  "refresh": "30s",
   "schemaVersion": 42,
   "tags": [
     "energy",
@@ -1182,12 +1178,12 @@
     "list": []
   },
   "time": {
-    "from": "now-7d",
+    "from": "now-1h",
     "to": "now"
   },
   "timepicker": {},
   "timezone": "",
   "title": "KSEM Energy Monitor",
   "uid": "ksem-energy-monitor",
-  "version": 21
+  "version": 24
 }
