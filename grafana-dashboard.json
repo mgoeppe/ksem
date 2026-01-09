@@ -387,9 +387,9 @@
             "type": "frser-sqlite-datasource",
             "uid": "cf7zteddssyyoc"
           },
-          "queryText": "SELECT power_home as value FROM ksem_data ORDER BY id DESC LIMIT 1",
+          "queryText": "SELECT (power_home - power_wallbox) as value FROM ksem_data ORDER BY id DESC LIMIT 1",
           "queryType": "table",
-          "rawQueryText": "SELECT power_home as value FROM ksem_data ORDER BY id DESC LIMIT 1",
+          "rawQueryText": "SELECT (power_home - power_wallbox) as value FROM ksem_data ORDER BY id DESC LIMIT 1",
           "refId": "A",
           "timeColumns": [
             "timestamp"
@@ -869,9 +869,9 @@
             "type": "frser-sqlite-datasource",
             "uid": "cf7zteddssyyoc"
           },
-          "queryText": "SELECT SUM(energy) as value FROM (SELECT power_home * COALESCE((julianday(substr(timestamp, 1, 19)) - julianday(LAG(substr(timestamp, 1, 19)) OVER (ORDER BY timestamp))) * 24, 0) as energy FROM ksem_data WHERE unixepoch(substr(timestamp, 1, 19)) >= 1766831525857 / 1000 AND unixepoch(substr(timestamp, 1, 19)) <= 1767436325857 / 1000)",
+          "queryText": "SELECT SUM(energy) as value FROM (SELECT (power_home - power_wallbox) * COALESCE((julianday(substr(timestamp, 1, 19)) - julianday(LAG(substr(timestamp, 1, 19)) OVER (ORDER BY timestamp))) * 24, 0) as energy FROM ksem_data WHERE unixepoch(substr(timestamp, 1, 19)) >= 1766831525857 / 1000 AND unixepoch(substr(timestamp, 1, 19)) <= 1767436325857 / 1000)",
           "queryType": "table",
-          "rawQueryText": "SELECT SUM(energy) as value FROM (SELECT power_home * COALESCE((julianday(substr(timestamp, 1, 19)) - julianday(LAG(substr(timestamp, 1, 19)) OVER (ORDER BY timestamp))) * 24, 0) as energy FROM ksem_data WHERE unixepoch(substr(timestamp, 1, 19)) >= $__from / 1000 AND unixepoch(substr(timestamp, 1, 19)) <= $__to / 1000)",
+          "rawQueryText": "SELECT SUM(energy) as value FROM (SELECT (power_home - power_wallbox) * COALESCE((julianday(substr(timestamp, 1, 19)) - julianday(LAG(substr(timestamp, 1, 19)) OVER (ORDER BY timestamp))) * 24, 0) as energy FROM ksem_data WHERE unixepoch(substr(timestamp, 1, 19)) >= $__from / 1000 AND unixepoch(substr(timestamp, 1, 19)) <= $__to / 1000)",
           "refId": "A",
           "timeColumns": [
             "timestamp"
@@ -1153,9 +1153,9 @@
             "type": "frser-sqlite-datasource",
             "uid": "cf7zteddssyyoc"
           },
-          "queryText": "SELECT substr(timestamp, 1, 10) || 'T' || substr(timestamp, 12, 8) || '.000Z' as time, power_solar as Solar, power_battery as Battery, power_grid as Grid, power_home as Home, power_wallbox as Wallbox, battery_soc as \"Battery SOC\" FROM ksem_data ORDER BY id ASC",
+          "queryText": "SELECT substr(timestamp, 1, 10) || 'T' || substr(timestamp, 12, 8) || '.000Z' as time, power_solar as Solar, power_battery as Battery, power_grid as Grid, (power_home - power_wallbox) as Home, power_wallbox as Wallbox, battery_soc as \"Battery SOC\" FROM ksem_data ORDER BY id ASC",
           "queryType": "table",
-          "rawQueryText": "SELECT substr(timestamp, 1, 10) || 'T' || substr(timestamp, 12, 8) || '.000Z' as time, power_solar as Solar, power_battery as Battery, power_grid as Grid, power_home as Home, power_wallbox as Wallbox, battery_soc as \"Battery SOC\" FROM ksem_data ORDER BY id ASC",
+          "rawQueryText": "SELECT substr(timestamp, 1, 10) || 'T' || substr(timestamp, 12, 8) || '.000Z' as time, power_solar as Solar, power_battery as Battery, power_grid as Grid, (power_home - power_wallbox) as Home, power_wallbox as Wallbox, battery_soc as \"Battery SOC\" FROM ksem_data ORDER BY id ASC",
           "refId": "A",
           "timeColumns": [
             "time"
