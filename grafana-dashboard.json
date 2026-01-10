@@ -534,9 +534,9 @@
             "type": "frser-sqlite-datasource",
             "uid": "cf7zteddssyyoc"
           },
-          "queryText": "SELECT SUM(energy) as value FROM (SELECT CASE WHEN power_battery > 0 THEN power_battery * COALESCE((julianday(substr(timestamp, 1, 19)) - julianday(LAG(substr(timestamp, 1, 19)) OVER (ORDER BY timestamp))) * 24, 0) ELSE 0 END as energy FROM ksem_data WHERE unixepoch(substr(timestamp, 1, 19)) >= 1766831525857 / 1000 AND unixepoch(substr(timestamp, 1, 19)) <= 1767436325857 / 1000)",
+          "queryText": "SELECT SUM(energy) as value FROM (SELECT power_battery * CASE WHEN (unixepoch(substr(timestamp, 1, 19)) - unixepoch(LAG(substr(timestamp, 1, 19)) OVER (ORDER BY timestamp))) / 3600.0 > 0.167 THEN 0 ELSE COALESCE((unixepoch(substr(timestamp, 1, 19)) - unixepoch(LAG(substr(timestamp, 1, 19)) OVER (ORDER BY timestamp))) / 3600.0, 0) END as energy FROM ksem_data WHERE power_battery > 0 AND unixepoch(substr(timestamp, 1, 19)) >= 1766831525857 / 1000 AND unixepoch(substr(timestamp, 1, 19)) <= 1767436325857 / 1000)",
           "queryType": "table",
-          "rawQueryText": "SELECT SUM(energy) as value FROM (SELECT CASE WHEN power_battery > 0 THEN power_battery * COALESCE((julianday(substr(timestamp, 1, 19)) - julianday(LAG(substr(timestamp, 1, 19)) OVER (ORDER BY timestamp))) * 24, 0) ELSE 0 END as energy FROM ksem_data WHERE unixepoch(substr(timestamp, 1, 19)) >= $__from / 1000 AND unixepoch(substr(timestamp, 1, 19)) <= $__to / 1000)",
+          "rawQueryText": "SELECT SUM(energy) as value FROM (SELECT power_battery * CASE WHEN (unixepoch(substr(timestamp, 1, 19)) - unixepoch(LAG(substr(timestamp, 1, 19)) OVER (ORDER BY timestamp))) / 3600.0 > 0.167 THEN 0 ELSE COALESCE((unixepoch(substr(timestamp, 1, 19)) - unixepoch(LAG(substr(timestamp, 1, 19)) OVER (ORDER BY timestamp))) / 3600.0, 0) END as energy FROM ksem_data WHERE power_battery > 0 AND unixepoch(substr(timestamp, 1, 19)) >= $__from / 1000 AND unixepoch(substr(timestamp, 1, 19)) <= $__to / 1000)",
           "refId": "A",
           "timeColumns": [
             "timestamp"
@@ -601,9 +601,9 @@
             "type": "frser-sqlite-datasource",
             "uid": "cf7zteddssyyoc"
           },
-          "queryText": "SELECT SUM(energy) as value FROM (SELECT CASE WHEN power_battery < 0 THEN power_battery * COALESCE((julianday(substr(timestamp, 1, 19)) - julianday(LAG(substr(timestamp, 1, 19)) OVER (ORDER BY timestamp))) * 24, 0) ELSE 0 END as energy FROM ksem_data WHERE unixepoch(substr(timestamp, 1, 19)) >= 1766831525857 / 1000 AND unixepoch(substr(timestamp, 1, 19)) <= 1767436325857 / 1000)",
+          "queryText": "SELECT SUM(energy) as value FROM (SELECT ABS(power_battery) * CASE WHEN (unixepoch(substr(timestamp, 1, 19)) - unixepoch(LAG(substr(timestamp, 1, 19)) OVER (ORDER BY timestamp))) / 3600.0 > 0.167 THEN 0 ELSE COALESCE((unixepoch(substr(timestamp, 1, 19)) - unixepoch(LAG(substr(timestamp, 1, 19)) OVER (ORDER BY timestamp))) / 3600.0, 0) END as energy FROM ksem_data WHERE power_battery < 0 AND unixepoch(substr(timestamp, 1, 19)) >= 1766831525857 / 1000 AND unixepoch(substr(timestamp, 1, 19)) <= 1767436325857 / 1000)",
           "queryType": "table",
-          "rawQueryText": "SELECT SUM(energy) as value FROM (SELECT CASE WHEN power_battery < 0 THEN power_battery * COALESCE((julianday(substr(timestamp, 1, 19)) - julianday(LAG(substr(timestamp, 1, 19)) OVER (ORDER BY timestamp))) * 24, 0) ELSE 0 END as energy FROM ksem_data WHERE unixepoch(substr(timestamp, 1, 19)) >= $__from / 1000 AND unixepoch(substr(timestamp, 1, 19)) <= $__to / 1000)",
+          "rawQueryText": "SELECT SUM(energy) as value FROM (SELECT ABS(power_battery) * CASE WHEN (unixepoch(substr(timestamp, 1, 19)) - unixepoch(LAG(substr(timestamp, 1, 19)) OVER (ORDER BY timestamp))) / 3600.0 > 0.167 THEN 0 ELSE COALESCE((unixepoch(substr(timestamp, 1, 19)) - unixepoch(LAG(substr(timestamp, 1, 19)) OVER (ORDER BY timestamp))) / 3600.0, 0) END as energy FROM ksem_data WHERE power_battery < 0 AND unixepoch(substr(timestamp, 1, 19)) >= $__from / 1000 AND unixepoch(substr(timestamp, 1, 19)) <= $__to / 1000)",
           "refId": "A",
           "timeColumns": [
             "timestamp"
@@ -1185,5 +1185,5 @@
   "timezone": "",
   "title": "KSEM Energy Monitor",
   "uid": "ksem-energy-monitor",
-  "version": 24
+  "version": 25
 }
