@@ -1,4 +1,5 @@
 [![CI](https://github.com/mgoeppe/ksem/actions/workflows/ci.yml/badge.svg)](https://github.com/mgoeppe/ksem/actions/workflows/ci.yml)
+[![codecov](https://codecov.io/gh/mgoeppe/ksem/branch/main/graph/badge.svg)](https://codecov.io/gh/mgoeppe/ksem)
 [![Go Report Card](https://goreportcard.com/badge/github.com/mgoeppe/ksem)](https://goreportcard.com/report/github.com/mgoeppe/ksem)
 [![License](https://img.shields.io/github/license/mgoeppe/ksem)](LICENSE)
 
