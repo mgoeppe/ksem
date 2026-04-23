@@ -11,47 +11,11 @@ permissions:
   id-token: write
 
 jobs:
-  lint:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-go@v5
-        with:
-          go-version: "1.24"
-      - uses: golangci/golangci-lint-action@v6
-
-  build:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-go@v5
-        with:
-          go-version: "1.24"
-      - run: go build ./...
-
-  test:
-    strategy:
-      matrix:
-        go-version: ["1.24"]
-        platform: [ubuntu-latest, macos-latest, windows-latest]
-    runs-on: ${{ matrix.platform }}
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-go@v5
-        with:
-          go-version: ${{ matrix.go-version }}
-      - run: go test -v -covermode=count ./...
-
-  coverage:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-go@v5
-        with:
-          go-version: "1.24"
-      - run: go test -race -coverprofile=coverage.txt -covermode=atomic ./...
-      - uses: codecov/codecov-action@v5
-        with:
-          files: ./coverage.txt
-          flags: unittests
-          use_oidc: true
+  ci:
+    uses: mgoeppe/shared-workflows/.github/workflows/go-ci.yml@main
+    with:
+      go-version: "1.24"
+      build: true
+    permissions:
+      contents: read
+      id-token: write
