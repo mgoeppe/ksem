@@ -10,13 +10,13 @@ import (
 	"time"
 
 	"github.com/gorilla/websocket"
-	"github.com/matoubidou/ksem/pkg/obis"
-	"github.com/matoubidou/ksem/pkg/output"
-	outputjson "github.com/matoubidou/ksem/pkg/output/json"
-	"github.com/matoubidou/ksem/pkg/output/sqlite"
-	"github.com/matoubidou/ksem/pkg/output/tui"
-	pb "github.com/matoubidou/ksem/pkg/proto"
-	"github.com/matoubidou/ksem/pkg/types"
+	"github.com/mgoeppe/ksem/pkg/obis"
+	"github.com/mgoeppe/ksem/pkg/output"
+	outputjson "github.com/mgoeppe/ksem/pkg/output/json"
+	"github.com/mgoeppe/ksem/pkg/output/sqlite"
+	"github.com/mgoeppe/ksem/pkg/output/tui"
+	pb "github.com/mgoeppe/ksem/pkg/proto"
+	"github.com/mgoeppe/ksem/pkg/types"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/pflag"
 	"github.com/spf13/viper"
@@ -284,7 +284,7 @@ func main() {
 
 	// Get config file path from flags (don't bind other flags to viper to avoid conflicts)
 	configFile, _ := pflag.CommandLine.GetString("config")
-	
+
 	// Load configuration
 	config, err := loadConfig(configFile)
 	if err != nil {

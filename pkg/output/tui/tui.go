@@ -8,7 +8,7 @@ import (
 
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
-	"github.com/matoubidou/ksem/pkg/types"
+	"github.com/mgoeppe/ksem/pkg/types"
 )
 
 // Styles

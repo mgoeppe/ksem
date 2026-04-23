@@ -1,3 +1,7 @@
+[![CI](https://github.com/mgoeppe/ksem/actions/workflows/ci.yml/badge.svg)](https://github.com/mgoeppe/ksem/actions/workflows/ci.yml)
+[![Go Report Card](https://goreportcard.com/badge/github.com/mgoeppe/ksem)](https://goreportcard.com/report/github.com/mgoeppe/ksem)
+[![License](https://img.shields.io/github/license/mgoeppe/ksem)](LICENSE)
+
 # KSEM Meter Scraper
 
 A Go tool for scraping real-time energy data from Kostal KSEM (Kostal Smart Energy Meter) devices. Monitors solar production, battery status, grid power, and home consumption through WebSocket connections with Protocol Buffer encoding.
@@ -24,7 +28,7 @@ A Go tool for scraping real-time energy data from Kostal KSEM (Kostal Smart Ener
 
 ```bash
 # Clone the repository
-git clone https://github.com/matoubidou/ksem.git
+git clone https://github.com/mgoeppe/ksem.git
 cd ksem
 
 # Initial setup (creates config.yaml and downloads dependencies)
@@ -46,7 +50,7 @@ make
 
 ```bash
 # Clone and build
-git clone https://github.com/matoubidou/ksem.git
+git clone https://github.com/mgoeppe/ksem.git
 cd ksem
 go build -o ksem
 

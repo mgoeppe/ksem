@@ -554,7 +554,7 @@ const file_ksem_proto_rawDesc = "" +
 	"\x05label\x18\x01 \x01(\tR\x05label\x12\x12\n" +
 	"\x04type\x18\x02 \x01(\x05R\x04type\x12\x12\n" +
 	"\x04unit\x18\x03 \x01(\x05R\x04unit\x12\"\n" +
-	"\fdecimalpower\x18\x04 \x01(\x11R\fdecimalpowerB&Z$github.com/matoubidou/ksem/pkg/protob\x06proto3"
+	"\fdecimalpower\x18\x04 \x01(\x11R\fdecimalpowerB&Z$github.com/mgoeppe/ksem/pkg/protob\x06proto3"
 
 var (
 	file_ksem_proto_rawDescOnce sync.Once

@@ -1,4 +1,4 @@
-module github.com/matoubidou/ksem
+module github.com/mgoeppe/ksem
 
 go 1.24.0
 

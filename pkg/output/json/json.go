@@ -7,7 +7,7 @@ import (
 	"os"
 	"time"
 
-	"github.com/matoubidou/ksem/pkg/types"
+	"github.com/mgoeppe/ksem/pkg/types"
 	log "github.com/sirupsen/logrus"
 )
 

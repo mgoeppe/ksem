@@ -2,7 +2,7 @@ syntax = "proto3";
 
 package proto;
 
-option go_package = "github.com/matoubidou/ksem/pkg/proto";
+option go_package = "github.com/mgoeppe/ksem/pkg/proto";
 
 // Timestamp from google protobuf
 message Timestamp {

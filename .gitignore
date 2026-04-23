@@ -11,6 +11,7 @@ ksem-scraper
 
 # Output
 *.out
+coverage.html
 ksem_data.json
 output.json
 
@@ -21,12 +22,11 @@ config*.yaml
 .envrc
 
 # VS Code MCP configuration (contains tokens)
-.vscode/mcp.json
 !config*.example
 
 # IDE
 .idea/
-.vscode/mcp.json
+.vscode/
 *.swp
 *.swo
 *~
