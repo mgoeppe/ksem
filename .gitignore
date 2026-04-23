@@ -31,6 +31,12 @@ config*.yaml
 *.swo
 *~
 
+# Database files
+*.db
+
+# Docker image archive
+ksem-latest.tar.gz
+
 # OS
 .DS_Store
 Thumbs.db
